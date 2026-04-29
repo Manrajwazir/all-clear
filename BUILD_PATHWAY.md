@@ -3,8 +3,8 @@
 > A learn-as-you-build guide. Every phase explains *why*, not just *what*. By the end you'll have a working MVP **and** be able to defend every architectural decision in an interview.
 
 **Last updated:** April 28, 2026
-**Owner:** Manraj Singh Wazir (backend + cloud + co-owning ML)
-**Co-founder:** Xavion (sales + industry validation now, ML lead post-MVP)
+**Co-Founder:** Manraj Singh Wazir (backend + cloud + co-owning ML)
+**Co-Founder:** Xavion (sales + industry validation now, ML lead post-MVP, Co-owning Full-Stack)
 **Target Demo Day:** May 12, 2026
 **Repo visibility:** Private until Demo Day, then evaluated for open-source
 
