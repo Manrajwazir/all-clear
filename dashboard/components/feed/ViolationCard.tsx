@@ -3,6 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import { cn, formatTimeSince } from "@/lib/utils";
 import { StatusPill, ViolationLabel } from "./StatusPill";
+import { useSignedUrl } from "@/lib/use-signed-url";
 import type { ViolationWithCamera } from "@/lib/supabase/types";
 
 interface ViolationCardProps {
@@ -14,6 +15,7 @@ export function ViolationCard({ violation, onSelect }: ViolationCardProps) {
   const ageMs = Date.now() - new Date(violation.detected_at).getTime();
   const isActive =
     violation.resolution_status === "pending" && ageMs < 5 * 60 * 1000;
+  const signedUrl = useSignedUrl(violation.image_url);
 
   const detected = new Date(violation.detected_at);
   const time = detected.toLocaleTimeString([], {
@@ -49,10 +51,10 @@ export function ViolationCard({ violation, onSelect }: ViolationCardProps) {
       )}
 
       <div className="shrink-0">
-        {violation.image_url ? (
+        {signedUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={violation.image_url}
+            src={signedUrl}
             alt=""
             className={cn(
               "h-16 w-16 rounded-md object-cover",

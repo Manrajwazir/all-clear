@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Check, AlertTriangle } from "lucide-react";
 import { cn, formatTimeSince, formatViolationType } from "@/lib/utils";
 import { StatusPill } from "./StatusPill";
+import { useSignedUrl } from "@/lib/use-signed-url";
 import { createClient } from "@/lib/supabase/client";
 import type {
   ResolutionStatus,
@@ -23,6 +24,7 @@ export function DetailPanel({
   onResolved,
 }: DetailPanelProps) {
   const [busy, setBusy] = useState(false);
+  const signedUrl = useSignedUrl(violation?.image_url ?? null);
 
   async function mark(status: ResolutionStatus) {
     if (!violation) return;
@@ -33,7 +35,7 @@ export function DetailPanel({
       .update({
         resolution_status: status,
         resolved_at: new Date().toISOString(),
-      })
+      } as never)
       .eq("id", violation.id);
     setBusy(false);
     if (!error) {
@@ -90,10 +92,10 @@ export function DetailPanel({
             </header>
 
             <div className="px-6">
-              {violation.image_url ? (
+              {signedUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={violation.image_url}
+                  src={signedUrl}
                   alt="Violation snapshot"
                   className="w-full aspect-video object-cover rounded-lg ring-1 ring-inset ring-surface-elevated"
                 />
