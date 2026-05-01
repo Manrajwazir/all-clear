@@ -3,7 +3,7 @@
 Evidence that the market exists, the technology works, and we have standing to build this.
 Update before every investor/mentor conversation.
 
-**Last updated:** May 1, 2026
+**Last updated:** May 1, 2026 (Phase 4 dashboard validated)
 
 ---
 
@@ -86,6 +86,17 @@ pitching to legal teams. Do not overstate until exceptions are precisely underst
 - ✅ JPEG snapshot uploaded to S3 (ca-central-1 bucket, private)
 - ✅ Violation row inserted into Supabase Postgres with image URL + timestamp
 - ✅ Twilio SMS received on supervisor phone within ~5-8 seconds of violation
+
+### Supervisor dashboard confirmed working (May 1, 2026)
+- ✅ Next.js 15 dashboard running with Supabase Realtime subscription
+- ✅ Violations appear LIVE on dashboard within seconds of detection (no page reload)
+- ✅ Hero status word transitions from ALL CLEAR → ACTIVE ALERT automatically
+- ✅ S3 images render via pre-signed URL API route (private bucket, 1hr expiry)
+- ✅ Mark resolved / false positive workflow updates Supabase in real time
+- ✅ Hourly and by-type violation charts render from live data (Recharts)
+- ✅ Detail panel slides in from right with full violation metadata
+- **What this proves:** Full end-to-end MVP pipeline — from webcam to supervisor's
+  browser — works on local dev. Ready for Amplify deployment.
 
 ### Academic research consensus (2020-2025)
 - YOLOv3 through YOLO11 consistently achieve 77-95% mAP on PPE detection in

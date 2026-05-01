@@ -133,7 +133,14 @@ We only alert on: NO-Hardhat, NO-Safety Vest, NO-Mask (the "violation classes").
 Webcam → OpenCV NumPy array → YOLO single forward pass → bounding boxes with
 class + confidence → filter for violation classes → debounce check → S3 + Supabase → SMS.
 
-**"Why confidence threshold 0.5 specifically?"**
+**"Walk me through how a violation appears on the dashboard."**
+Python backend inserts a row → Supabase Realtime detects the INSERT via logical replication →
+pushes payload over WebSocket → React `useEffect` subscription catches it → re-fetches the
+row with camera join → prepends to violations array → `deriveStatus()` recalculates hero word →
+AnimatePresence animates the new ViolationCard in → image loaded via pre-signed S3 URL from
+`/api/signed-url` route.
+
+**"Why confidence threshold 0.6 specifically?"**
 Tradeoff: lower = more detections including false positives; higher = misses real violations.
 0.6 is our starting point — we'll tune with real customer feedback.
 
@@ -152,3 +159,51 @@ keeps the supervisor sane and the signal-to-noise ratio high.
 **"What happens if S3 is down?"**
 Currently: violation logged in Supabase with null image_url. Error caught and logged,
 detection loop continues. Production needs a retry queue. Acknowledged known gap.
+
+**"Why pre-signed URLs instead of making the S3 bucket public?"**
+PIPA compliance (Alberta privacy law). Images show workers' faces. Private bucket + expiring
+URLs = data minimization. Each URL expires in 1 hour. If a URL leaks, it goes dead.
+
+**"What's the difference between Active, Pending, and Resolved?"**
+Active = pending + less than 5 minutes old (amber, needs attention NOW).
+Pending = pending + older than 5 minutes (blue, still needs triage).
+Resolved = supervisor clicked "Mark resolved" (teal, done).
+False positive = supervisor flagged as model error (gray, helps future retraining).
+
+---
+
+## Phase 4 — Dashboard Build Notes (May 1, 2026)
+
+### Architecture choices
+- **Next.js 15 App Router** with server components by default, client components only for
+  interactive pieces (ViolationFeed, DetailPanel, StatusHero's breathing animation).
+- **Tailwind v4** — CSS-first config in `globals.css`, no `tailwind.config.js`. Design tokens
+  are CSS custom properties (`--surface-base`, `--status-warning`, etc.).
+- **Geist + Geist Mono** fonts via `next/font/google` — avoids generic Inter/Roboto look.
+- **No Zustand/Redux** — React state is sufficient for MVP. ViolationFeed holds violations[]
+  in useState, derived status is useMemo.
+
+### Supabase Realtime subscription pattern
+```typescript
+supabase.channel("violations-feed")
+  .on("postgres_changes", { event: "INSERT", schema: "public", table: "violations" }, callback)
+  .subscribe();
+```
+On INSERT, we get the raw payload but it doesn't include the camera join. So we do a
+second `fetchOne(id)` query to get the enriched `ViolationWithCamera` before rendering.
+
+### Pre-signed URL architecture
+S3 images are private → browser can't load them directly → added `/api/signed-url` route
+that generates 1-hour pre-signed URLs via `@aws-sdk/s3-request-presigner`. Created
+`useSignedUrl()` hook that ViolationCard and DetailPanel use to convert raw S3 URLs.
+
+### Harmless terminal 404s
+- `LayoutGroupContext.mjs.map 404` — Next.js dev-mode source map, no production impact
+- `com.chrome.devtools.json 404` — Chrome extension config probe, no impact
+
+### StatusPill logic (status.ts)
+- Active window: 5 minutes (`ACTIVE_WINDOW_MS = 5 * 60 * 1000`)
+- Safe window: 60 seconds (`SAFE_WINDOW_MS = 60 * 1000`)
+- Critical threshold: 3+ active violations
+- Warning threshold: 1+ active violations
+- Re-renders every 30 seconds so pills age out naturally

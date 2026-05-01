@@ -3,7 +3,7 @@
 Things to research, verify, or ask about. Move to NOTES.md or PROOF.md once answered.
 Add a date when you log a question. Strike through when answered.
 
-**Last updated:** May 1, 2026
+**Last updated:** May 1, 2026 (Phase 4 complete)
 
 ---
 
@@ -11,7 +11,7 @@ Add a date when you log a question. Strike through when answered.
 
 - [ ] **AGPL-3.0 resolution** — Email `licensing@ultralytics.com` before customer #1.
   Ask about startup license. Reference: BUILD_PATHWAY.md §13.
-  *Owner: Manraj | Timeline: Phase 4-5*
+  *Owner: Manraj | Timeline: Phase 5*
 
 - [ ] **Alberta tort law exceptions** — WCB provides employer tort immunity for covered injuries,
   but exceptions exist (independent contractors, gross negligence, third-party claims).
@@ -28,10 +28,6 @@ Add a date when you log a question. Strike through when answered.
 ---
 
 ## Technology
-
-- [ ] **GPU not showing in main.py** — CUDA 13.1 confirmed, PyTorch cu126 installed,
-  but sometimes model shows CPU. Investigate whether `model.to('cuda')` is being called
-  after every restart. Verify with `python -c "import torch; print(torch.cuda.is_available())"`.
 
 - [ ] **Baseball cap false positive rate** — BUILD_PATHWAY.md notes the model may flag
   baseball caps as helmets ~30% of the time. Test this. Document result in NOTES.md.
@@ -67,19 +63,29 @@ Add a date when you log a question. Strike through when answered.
 
 ---
 
-## Infrastructure / Phase 4+
+## Infrastructure / Phase 5
 
-- [ ] **S3 pre-signed URLs** — How to generate a pre-signed URL with expiry for the
-  dashboard image viewer? boto3: `s3.generate_presigned_url('get_object', ...)`
-  What expiry time is right? 1 hour? 24 hours?
+- [x] ~~**S3 pre-signed URLs** — DONE. Added `/api/signed-url` route using
+  `@aws-sdk/s3-request-presigner`. 1-hour expiry. `useSignedUrl()` hook in ViolationCard
+  and DetailPanel.~~ *(Resolved May 1, 2026)*
+
+- [x] ~~**Demo mode** — DONE. DemoModeBar component loads pre-seeded fake violations
+  via `lib/demo-data.ts`.~~ *(Resolved May 1, 2026)*
 
 - [ ] **Supabase RLS policies** — What policies are needed on the `violations` table?
   Supervisors should read their site's violations. Admins read everything.
-  Write this before deploying the dashboard.
+  Write this before deploying the dashboard publicly.
 
-- [ ] **Amplify env vars** — What env vars does the dashboard need in Amplify console?
-  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Are there others?
+- [ ] **Amplify env vars** — Dashboard needs in Amplify console:
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`
+  (last 4 are server-side only for the `/api/signed-url` route).
 
-- [ ] **Demo mode** — Phase 5 requires a "demo mode" button that loads pre-seeded fake
-  violations so we can demo without running the webcam. How to seed realistic data?
-  Script that inserts 20-30 violation rows with realistic timestamps + fake image URLs?
+- [ ] **Amplify build config** — Set app root to `dashboard/` in Amplify Advanced settings.
+  Verify `next build` works in production mode before deploying.
+
+- [ ] **Stub pages** — cameras/, history/, reports/, settings/, account/ pages are
+  empty stubs. Decide which to flesh out for Demo Day vs defer.
+
+- [ ] **Custom domain** — `dashboard.siteiq.app` or similar. Purchase domain,
+  configure in Amplify. Phase 5 task.
