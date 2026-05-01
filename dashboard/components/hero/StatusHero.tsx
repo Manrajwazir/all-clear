@@ -56,7 +56,7 @@ export function StatusHero({
         </AnimatePresence>
       </div>
 
-      <div className="mt-12 sm:mt-16 grid grid-cols-3 gap-4 sm:gap-12 max-w-3xl">
+      <div className="mt-12 sm:mt-16 grid grid-cols-3 gap-6 sm:gap-12">
         <LiveTimer lastViolationAt={lastViolationAt} />
         <Metric
           label="Active cameras"

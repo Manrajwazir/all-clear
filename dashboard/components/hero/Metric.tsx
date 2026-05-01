@@ -23,7 +23,7 @@ export function Metric({ label, value, className }: MetricProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="font-mono tabular text-[42px] sm:text-[56px] leading-none font-semibold text-text-primary tracking-tight"
+            className="font-mono tabular text-[28px] sm:text-[42px] lg:text-[56px] leading-none font-semibold text-text-primary tracking-tight"
           >
             {value}
           </motion.span>
