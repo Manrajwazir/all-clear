@@ -1,11 +1,17 @@
 """
 main.py — SiteIQ Detection Service Entry Point
 -----------------------------------------------
-Phase 1 complete: live webcam detection loop.
+Phase 2: live detection loop + debounce + Supabase logging + S3 snapshots.
 
-Data flow:
-  OpenCV (webcam) → PPEDetector.predict() (YOLO on GPU) →
-  PPEDetector.find_violations() → annotated frame displayed in window
+Data flow per frame:
+  OpenCV (webcam)
+    → PPEDetector.predict()         [YOLO inference on GPU]
+    → PPEDetector.find_violations() [filter for NO-Hardhat etc.]
+    → ViolationTracker.should_alert() [debounce + cooldown]
+    → cv2.imencode()                [encode frame to JPEG bytes]
+    → upload_snapshot()             [save image to S3]
+    → log_violation()               [insert row in Supabase]
+    → annotated frame shown in window
 
 Run from the detection/ folder:
     cd detection
@@ -16,13 +22,20 @@ Controls:
     s — save a snapshot to docs/phase1_snapshot.jpg
 """
 
+import os
+import sys
 import cv2
 import time
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Add src/ to path so imports work when running from detection/
+sys.path.insert(0, str(Path(__file__).parent))
+
 from detector import PPEDetector, VIOLATION_CLASSES
+from debounce import ViolationTracker
+from storage import upload_snapshot, log_violation
 
 load_dotenv()
 
@@ -32,15 +45,43 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# --- Config (overridden by .env in later phases) ---
-MODEL_PATH = "models/ppe_v1.pt"
-CONFIDENCE = 0.6
-CAMERA_INDEX = 0  # 0 = default webcam; replace with RTSP URL string for IP camera
+# --- Config (reads from .env, falls back to defaults) ---
+MODEL_PATH    = "models/ppe_v1.pt"
+CONFIDENCE    = float(os.getenv("DETECTION_CONFIDENCE_THRESHOLD", 0.6))
+DEBOUNCE_F    = int(os.getenv("DEBOUNCE_FRAMES", 5))
+COOLDOWN_S    = int(os.getenv("COOLDOWN_SECONDS", 60))
+CAMERA_INDEX  = 0   # 0 = default webcam; swap for RTSP URL string for IP camera
+
+# Hardcoded camera UUID for MVP (single site, single camera)
+# Replace this with your actual camera UUID from Supabase once you insert a row
+CAMERA_ID = "00000000-0000-0000-0000-000000000001"
+
+# Check if Supabase is configured — if not, run in "local log only" mode
+STORAGE_ENABLED = all([
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
+    os.getenv("AWS_ACCESS_KEY_ID"),
+    os.getenv("S3_BUCKET_NAME"),
+])
+
+if not STORAGE_ENABLED:
+    logger.warning(
+        "Supabase / AWS not configured in .env — "
+        "running in LOCAL LOG ONLY mode. Violations print to terminal only."
+    )
+else:
+    logger.info("Storage enabled: violations will be saved to Supabase + S3.")
 
 
 def run_detection():
     logger.info("Loading PPE model...")
     detector = PPEDetector(model_path=MODEL_PATH)
+
+    # One tracker per process — tracks debounce + cooldown state
+    tracker = ViolationTracker(
+        debounce_frames=DEBOUNCE_F,
+        cooldown_seconds=COOLDOWN_S
+    )
 
     logger.info(f"Opening camera {CAMERA_INDEX}...")
     cap = cv2.VideoCapture(CAMERA_INDEX)
@@ -53,11 +94,14 @@ def run_detection():
         )
         return
 
-    print("\n" + "=" * 58)
-    print("  SiteIQ Phase 1 — Live PPE Detection")
-    print(f"  Monitoring for: {', '.join(sorted(VIOLATION_CLASSES))}")
+    print("\n" + "=" * 62)
+    print("  SiteIQ Phase 2 — Live PPE Detection + Violation Logger")
+    print(f"  Monitoring: {', '.join(sorted(VIOLATION_CLASSES))}")
+    print(f"  Debounce: {DEBOUNCE_F} frames | Cooldown: {COOLDOWN_S}s")
+    mode = "Supabase + S3" if STORAGE_ENABLED else "LOCAL LOG ONLY"
+    print(f"  Storage mode: {mode}")
     print("  Press  q  to quit  |  s  to save a snapshot")
-    print("=" * 58 + "\n")
+    print("=" * 62 + "\n")
 
     fps = 0.0
     frame_count = 0
@@ -69,35 +113,73 @@ def run_detection():
             logger.warning("Empty frame received — skipping.")
             continue
 
-        # Run YOLO inference (uses CUDA if available, falls back to CPU)
+        # 1. Run YOLO inference
         results = detector.predict(frame, confidence=CONFIDENCE)
 
-        # Pull out only the "bad" detections (NO-Hardhat, NO-Safety Vest, NO-Mask)
+        # 2. Filter for violation classes only
         violations = detector.find_violations(results[0])
 
-        # Draw bounding boxes + class labels on the frame (built into ultralytics)
+        # 3. Draw bounding boxes + labels on frame
         annotated = results[0].plot()
 
-        # Rolling FPS: recalculate every 30 frames to avoid jitter
+        # 4. Rolling FPS (recalculate every 30 frames)
         frame_count += 1
         if frame_count % 30 == 0:
             fps = 30 / (time.time() - fps_start)
             fps_start = time.time()
 
-        # Status bar: FPS + live violation count, red if violations present
+        # 5. Status bar overlay
         num_violations = len(violations)
         label = f"FPS: {fps:.1f}  |  Active violations: {num_violations}"
         color = (0, 0, 220) if num_violations > 0 else (0, 180, 0)
         cv2.putText(annotated, label, (10, 32),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.85, color, 2, cv2.LINE_AA)
 
-        # Log each violation type + confidence to the terminal
+        # 6. For each violation — check debounce, then save + alert
         for v in violations:
-            logger.info(
-                f"VIOLATION  type={v['violation_type']}  conf={v['confidence']:.2f}"
-            )
+            v_type = v["violation_type"]
+            conf   = v["confidence"]
 
-        cv2.imshow("SiteIQ — Phase 1 Detection", annotated)
+            logger.info(f"DETECTED   type={v_type}  conf={conf:.2f}")
+
+            if tracker.should_alert(v_type):
+                logger.info(f"ALERT      type={v_type} — debounce passed, firing pipeline")
+
+                image_url = None
+
+                if STORAGE_ENABLED:
+                    try:
+                        # Encode the current frame as JPEG bytes
+                        success, buffer = cv2.imencode(".jpg", frame)
+                        if success:
+                            image_url = upload_snapshot(
+                                frame_bytes=buffer.tobytes(),
+                                camera_id=CAMERA_ID
+                            )
+                            logger.info(f"S3 upload OK → {image_url}")
+                        else:
+                            logger.warning("JPEG encode failed — skipping S3 upload")
+                    except Exception as e:
+                        logger.error(f"S3 upload failed: {e}")
+
+                    try:
+                        log_violation(
+                            camera_id=CAMERA_ID,
+                            violation_type=v_type,
+                            confidence=conf,
+                            image_url=image_url
+                        )
+                        logger.info(f"Supabase log OK — type={v_type}")
+                    except Exception as e:
+                        logger.error(f"Supabase log failed: {e}")
+                else:
+                    # No storage configured — just print
+                    logger.info(
+                        f"[LOCAL] Would log: type={v_type} conf={conf:.2f} "
+                        f"camera={CAMERA_ID}"
+                    )
+
+        cv2.imshow("SiteIQ — Phase 2 Detection", annotated)
 
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
