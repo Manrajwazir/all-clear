@@ -87,7 +87,7 @@ export function ViolationCard({ violation, onSelect }: ViolationCardProps) {
             <div className="font-mono tabular text-[14px] text-text-primary">
               {time}
             </div>
-            <div className="font-mono tabular text-[11px] text-text-tertiary mt-0.5">
+            <div className="font-mono tabular text-[11px] text-text-tertiary mt-0.5" suppressHydrationWarning>
               {formatTimeSince(violation.detected_at)} ago
             </div>
           </div>
