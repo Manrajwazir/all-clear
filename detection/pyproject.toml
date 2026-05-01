@@ -1,0 +1,27 @@
+[project]
+name = "ppe-detection"
+version = "0.1.0"
+description = "PPE detection service using YOLOv8"
+requires-python = ">=3.11"
+
+dependencies = [
+    "ultralytics",          # YOLOv8 — model inference
+    "opencv-python",        # image/video frame handling
+    "python-dotenv",        # load .env files
+    "supabase",             # Supabase client (DB + storage)
+    "boto3",                # AWS S3 client
+    "twilio",               # SMS alerts
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",                 # linter
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

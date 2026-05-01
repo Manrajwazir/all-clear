@@ -101,29 +101,29 @@ End of 14-day build, we have:
 
 ### Why each piece
 
-| Component | Choice | Why |
-|---|---|---|
-| ML framework | **Ultralytics YOLO11** | Industry standard. Same package every competitor uses. Pre-trained PPE weights available. AGPL-3.0 licensed (see §13). |
-| Detection language | **Python 3.10+** | YOLO is Python-native. Anything else is glue code. |
-| API framework | **FastAPI** | Async-first, OpenAPI docs auto-generated, modern Python standard. Replaces Flask. |
-| Database | **Supabase (Postgres)** | Already proven on GridSync. Realtime WebSockets out of the box save ~20 hours vs. AWS API Gateway WebSockets. |
-| Image storage | **AWS S3** | Resume + AWS cert reinforcement. Industry standard. Cheap. |
-| Frontend | **Next.js 15** | Already proven on GridSync + PatrolPrep. App Router + server components. |
-| Frontend hosting | **AWS Amplify** | Matches PatrolPrep architecture. Stronger Alberta enterprise resume than Vercel. |
-| UI library | **shadcn/ui + Tailwind** | Free, copy-paste, looks professional. No design time wasted. |
-| SMS alerts | **Twilio** | Industry standard. $20 free credit. Works on day 1. |
-| Email digests | **AWS SES** | Cheap, integrates with rest of AWS stack, supports DVA cert study. |
+| Component          | Choice                   | Why                                                                                                                    |
+| ------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| ML framework       | **Ultralytics YOLO11**   | Industry standard. Same package every competitor uses. Pre-trained PPE weights available. AGPL-3.0 licensed (see §13). |
+| Detection language | **Python 3.10+**         | YOLO is Python-native. Anything else is glue code.                                                                     |
+| API framework      | **FastAPI**              | Async-first, OpenAPI docs auto-generated, modern Python standard. Replaces Flask.                                      |
+| Database           | **Supabase (Postgres)**  | Already proven on GridSync. Realtime WebSockets out of the box save ~20 hours vs. AWS API Gateway WebSockets.          |
+| Image storage      | **AWS S3**               | Resume + AWS cert reinforcement. Industry standard. Cheap.                                                             |
+| Frontend           | **Next.js 15**           | Already proven on GridSync + PatrolPrep. App Router + server components.                                               |
+| Frontend hosting   | **AWS Amplify**          | Matches PatrolPrep architecture. Stronger Alberta enterprise resume than Vercel.                                       |
+| UI library         | **shadcn/ui + Tailwind** | Free, copy-paste, looks professional. No design time wasted.                                                           |
+| SMS alerts         | **Twilio**               | Industry standard. $20 free credit. Works on day 1.                                                                    |
+| Email digests      | **AWS SES**              | Cheap, integrates with rest of AWS stack, supports DVA cert study.                                                     |
 
 ### Why we're NOT using these (so you can defend the decision)
 
-| Rejected | Why |
-|---|---|
-| Kubernetes | Overkill. We have one container, one customer. |
-| Docker (for MVP) | Adds setup time before first detection. Bring it in for pilot deployment. |
+| Rejected                    | Why                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Kubernetes                  | Overkill. We have one container, one customer.                                                            |
+| Docker (for MVP)            | Adds setup time before first detection. Bring it in for pilot deployment.                                 |
 | AWS RDS instead of Supabase | RDS gives managed Postgres but no realtime. Building WebSockets on API Gateway = 20+ hours we don't have. |
-| Auth0/Clerk | Supabase Auth is built-in. Don't add a vendor. |
-| MLflow/W&B | We're not training from scratch. Using pre-trained weights. Add observability when we have our own data. |
-| Pure AWS (no Supabase) | Pure AWS for the data layer adds 20+ hours of WebSocket plumbing. Pragmatic hybrid wins. |
+| Auth0/Clerk                 | Supabase Auth is built-in. Don't add a vendor.                                                            |
+| MLflow/W&B                  | We're not training from scratch. Using pre-trained weights. Add observability when we have our own data.  |
+| Pure AWS (no Supabase)      | Pure AWS for the data layer adds 20+ hours of WebSocket plumbing. Pragmatic hybrid wins.                  |
 
 ---
 
@@ -772,14 +772,14 @@ Auth: Supabase Auth with email magic links (no passwords for MVP — easier and 
 
 ### Pages
 
-| Route | Purpose |
-|---|---|
-| `/` | Marketing landing page (Phase 5) |
-| `/login` | Magic link auth |
-| `/dashboard` | Live violations feed + recent stats |
+| Route                        | Purpose                                 |
+| ---------------------------- | --------------------------------------- |
+| `/`                          | Marketing landing page (Phase 5)        |
+| `/login`                     | Magic link auth                         |
+| `/dashboard`                 | Live violations feed + recent stats     |
 | `/dashboard/violations/[id]` | Single violation detail with full photo |
-| `/dashboard/cameras` | Manage registered cameras |
-| `/dashboard/settings` | Alert recipient phone, working hours |
+| `/dashboard/cameras`         | Manage registered cameras               |
+| `/dashboard/settings`        | Alert recipient phone, working hours    |
 
 ### Step-by-step
 
@@ -939,12 +939,12 @@ You said you want to co-own ML, not hand it off. Here's how that works practical
 
 ML in a product like SiteIQ has four layers, and you can own different ones:
 
-| Layer | What it is | MVP owner | Long-term owner |
-|---|---|---|---|
-| Model selection | Picking YOLO11 vs YOLO26, n vs s vs m vs l | Manraj | Xavion (with Manraj input) |
-| Training & fine-tuning | Running the training loop on PPE datasets | Both initially | Xavion primary |
-| Inference deployment | Loading model, running it on frames in production | Manraj | Manraj |
-| Model evaluation | Measuring accuracy, debugging false positives | Both | Both |
+| Layer                  | What it is                                        | MVP owner      | Long-term owner            |
+| ---------------------- | ------------------------------------------------- | -------------- | -------------------------- |
+| Model selection        | Picking YOLO11 vs YOLO26, n vs s vs m vs l        | Manraj         | Xavion (with Manraj input) |
+| Training & fine-tuning | Running the training loop on PPE datasets         | Both initially | Xavion primary             |
+| Inference deployment   | Loading model, running it on frames in production | Manraj         | Manraj                     |
+| Model evaluation       | Measuring accuracy, debugging false positives     | Both           | Both                       |
 
 You own inference deployment forever — that's backend/infra, your strength. You co-own evaluation forever — both founders need to debug the product. Training shifts toward Xavion as he ramps up post-May 26.
 
@@ -995,38 +995,38 @@ These will break in production. We accept them for MVP. Document them so future-
 
 ### Detection accuracy
 
-| Issue | Severity | When to fix |
-|---|---|---|
-| Generic PPE model fails on Alberta winter (toques under hardhats) | High | Phase 4+ with pilot footage |
-| Confidence threshold 0.6 is arbitrary | Medium | Tune with real customer feedback |
-| Model doesn't distinguish workers from visitors | Medium | Phase 5+ with worker re-identification |
-| No tracking — same person counted as multiple violations | Medium | Phase 5+ with DeepSORT |
+| Issue                                                             | Severity | When to fix                            |
+| ----------------------------------------------------------------- | -------- | -------------------------------------- |
+| Generic PPE model fails on Alberta winter (toques under hardhats) | High     | Phase 4+ with pilot footage            |
+| Confidence threshold 0.6 is arbitrary                             | Medium   | Tune with real customer feedback       |
+| Model doesn't distinguish workers from visitors                   | Medium   | Phase 5+ with worker re-identification |
+| No tracking — same person counted as multiple violations          | Medium   | Phase 5+ with DeepSORT                 |
 
 ### Infrastructure
 
-| Issue | Severity | When to fix |
-|---|---|---|
-| Single point of failure: laptop running detection | High | Pilot site = edge device (Jetson Nano) |
-| No retry logic if S3/Twilio down | Medium | Add queue + retry in Phase 5 |
-| No multi-tenant isolation | High | Required before customer #2 |
-| RLS not configured | High | Required before any production deployment |
-| Service role key in Python service env | Low (acceptable for trusted backend) | N/A |
+| Issue                                             | Severity                             | When to fix                               |
+| ------------------------------------------------- | ------------------------------------ | ----------------------------------------- |
+| Single point of failure: laptop running detection | High                                 | Pilot site = edge device (Jetson Nano)    |
+| No retry logic if S3/Twilio down                  | Medium                               | Add queue + retry in Phase 5              |
+| No multi-tenant isolation                         | High                                 | Required before customer #2               |
+| RLS not configured                                | High                                 | Required before any production deployment |
+| Service role key in Python service env            | Low (acceptable for trusted backend) | N/A                                       |
 
 ### Privacy
 
-| Issue | Severity | When to fix |
-|---|---|---|
-| No worker consent flow | **Critical** | Required before any pilot deployment in Alberta — see §13 |
-| Photos stored indefinitely | High | Add retention policy (30 days for resolved, 1 year for incidents) |
-| No data residency control | Medium | Verify S3 bucket region is `ca-central-1` |
+| Issue                      | Severity     | When to fix                                                       |
+| -------------------------- | ------------ | ----------------------------------------------------------------- |
+| No worker consent flow     | **Critical** | Required before any pilot deployment in Alberta — see §13         |
+| Photos stored indefinitely | High         | Add retention policy (30 days for resolved, 1 year for incidents) |
+| No data residency control  | Medium       | Verify S3 bucket region is `ca-central-1`                         |
 
 ### Operational
 
-| Issue | Severity | When to fix |
-|---|---|---|
-| One alert recipient hardcoded | Low | Add multi-recipient routing in Phase 5 |
-| No alert escalation if not acknowledged | Low | Phase 6+ |
-| No working-hours config (alerts at 3am) | Medium | Add to settings page |
+| Issue                                   | Severity | When to fix                            |
+| --------------------------------------- | -------- | -------------------------------------- |
+| One alert recipient hardcoded           | Low      | Add multi-recipient routing in Phase 5 |
+| No alert escalation if not acknowledged | Low      | Phase 6+                               |
+| No working-hours config (alerts at 3am) | Medium   | Add to settings page                   |
 
 ---
 
