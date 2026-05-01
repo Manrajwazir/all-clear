@@ -36,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from detector import PPEDetector, VIOLATION_CLASSES
 from debounce import ViolationTracker
 from storage import upload_snapshot, log_violation
+from alerts import send_violation_sms
 
 load_dotenv()
 
@@ -64,6 +65,13 @@ STORAGE_ENABLED = all([
     os.getenv("S3_BUCKET_NAME"),
 ])
 
+TWILIO_ENABLED = all([
+    os.getenv("TWILIO_ACCOUNT_SID"),
+    os.getenv("TWILIO_AUTH_TOKEN"),
+    os.getenv("TWILIO_FROM_NUMBER"),
+    os.getenv("TWILIO_TO_NUMBER"),
+])
+
 if not STORAGE_ENABLED:
     logger.warning(
         "Supabase / AWS not configured in .env — "
@@ -71,6 +79,11 @@ if not STORAGE_ENABLED:
     )
 else:
     logger.info("Storage enabled: violations will be saved to Supabase + S3.")
+
+if not TWILIO_ENABLED:
+    logger.warning("Twilio not configured in .env — SMS alerts disabled.")
+else:
+    logger.info("Twilio enabled: SMS alerts will fire on confirmed violations.")
 
 
 def run_detection():
@@ -100,7 +113,10 @@ def run_detection():
     print(f"  Debounce: {DEBOUNCE_F} frames | Cooldown: {COOLDOWN_S}s")
     mode = "Supabase + S3" if STORAGE_ENABLED else "LOCAL LOG ONLY"
     print(f"  Storage mode: {mode}")
-    print("  Press  q  to quit  |  s  to save a snapshot")
+    sms_mode = "ON" if TWILIO_ENABLED else "OFF (fill Twilio keys in .env)"
+    print(f"  SMS alerts:   {sms_mode}")
+    print("  Press  q or ESC  to quit  |  s  to save a snapshot")
+    print("  NOTE: click the camera window first, THEN press q")
     print("=" * 62 + "\n")
 
     fps = 0.0
@@ -172,6 +188,14 @@ def run_detection():
                         logger.info(f"Supabase log OK — type={v_type}")
                     except Exception as e:
                         logger.error(f"Supabase log failed: {e}")
+
+                    # Phase 3 — SMS alert
+                    if TWILIO_ENABLED:
+                        send_violation_sms(
+                            violation_type=v_type,
+                            camera_name="Webcam Dev Camera",
+                            image_url=image_url or "no-image"
+                        )
                 else:
                     # No storage configured — just print
                     logger.info(
@@ -181,8 +205,8 @@ def run_detection():
 
         cv2.imshow("SiteIQ — Phase 2 Detection", annotated)
 
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
+        key = cv2.waitKey(30) & 0xFF
+        if key == ord('q') or key == 27:  # 27 = ESC
             logger.info("Quit signal received.")
             break
         elif key == ord('s'):
