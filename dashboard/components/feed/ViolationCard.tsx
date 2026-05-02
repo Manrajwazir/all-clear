@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn, formatTimeSince } from "@/lib/utils";
 import { StatusPill, ViolationLabel } from "./StatusPill";
@@ -12,18 +13,29 @@ interface ViolationCardProps {
 }
 
 export function ViolationCard({ violation, onSelect }: ViolationCardProps) {
-  const ageMs = Date.now() - new Date(violation.detected_at).getTime();
+  // ---------- client-only time values to avoid hydration mismatch ----------
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const ageMs = mounted
+    ? Date.now() - new Date(violation.detected_at).getTime()
+    : 0;
   const isActive =
     violation.resolution_status === "pending" && ageMs < 5 * 60 * 1000;
+
   const signedUrl = useSignedUrl(violation.image_url);
 
-  const detected = new Date(violation.detected_at);
-  const time = detected.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  // toLocaleTimeString is locale-dependent → only compute on client
+  const time = mounted
+    ? new Date(violation.detected_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+    : "—";
+
+  const timeSince = mounted ? formatTimeSince(violation.detected_at) : "—";
 
   const cameraLabel =
     violation.cameras?.name && violation.cameras?.sites?.name
@@ -84,11 +96,11 @@ export function ViolationCard({ violation, onSelect }: ViolationCardProps) {
             </div>
           </div>
           <div className="shrink-0 text-right">
-            <div className="font-mono tabular text-[14px] text-text-primary">
+            <div className="font-mono tabular text-[14px] text-text-primary" suppressHydrationWarning>
               {time}
             </div>
             <div className="font-mono tabular text-[11px] text-text-tertiary mt-0.5" suppressHydrationWarning>
-              {formatTimeSince(violation.detected_at)} ago
+              {timeSince} ago
             </div>
           </div>
         </div>
