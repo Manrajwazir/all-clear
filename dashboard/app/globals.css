@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* =============================================================
-   SiteIQ Design Tokens — see docs/dashboard-design.md §3
+   Cordon Safety Design Tokens — see docs/dashboard-design.md §3
    ============================================================= */
 :root {
   /* === SURFACES (luminosity-based hierarchy, no borders) === */
@@ -117,8 +117,12 @@
 /* =============================================================
    Base styles
    ============================================================= */
-html, body {
+html {
   background: var(--surface-base);
+}
+
+body {
+  background: transparent;
   color: var(--text-primary);
   font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;

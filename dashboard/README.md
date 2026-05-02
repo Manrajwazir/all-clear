@@ -1,6 +1,6 @@
-# SiteIQ Dashboard
+# Cordon Safety Dashboard
 
-Next.js 15 supervisor dashboard for the SiteIQ MVP. Built per [docs/dashboard-design.md](../docs/dashboard-design.md).
+Next.js 15 supervisor dashboard for the Cordon Safety MVP. Built per [docs/dashboard-design.md](../docs/dashboard-design.md).
 
 ## What's wired up
 

@@ -1,4 +1,4 @@
-# SiteIQ — MVP Build Pathway
+# Cordon Safety — MVP Build Pathway
 
 > A learn-as-you-build guide. Every phase explains *why*, not just *what*. By the end you'll have a working MVP **and** be able to defend every architectural decision in an interview.
 
@@ -33,10 +33,10 @@
 ## 1. Project Context
 
 ### What we're building
-SiteIQ is a SaaS product that watches existing IP cameras on a construction site and detects PPE violations — workers without hard hats, missing vests, entering restricted zones — in real time. When it detects a violation, it logs it with a timestamp and a photo, and fires an SMS alert to the site supervisor.
+Cordon Safety is a SaaS product that watches existing IP cameras on a construction site and detects PPE violations — workers without hard hats, missing vests, entering restricted zones — in real time. When it detects a violation, it logs it with a timestamp and a photo, and fires an SMS alert to the site supervisor.
 
 ### Why this exists
-A single workplace incident on an Alberta oilsands or industrial site can disqualify a contractor from $500K-$2M of work because their TRIR (Total Recordable Incident Rate) breaks the operator's prequalification threshold. Today, sites manage compliance with a part-time safety person doing weekly walkthroughs and foremen filling out paper hazard observations — 5-10 hours/week of paperwork per site. SiteIQ automates the evidence layer.
+A single workplace incident on an Alberta oilsands or industrial site can disqualify a contractor from $500K-$2M of work because their TRIR (Total Recordable Incident Rate) breaks the operator's prequalification threshold. Today, sites manage compliance with a part-time safety person doing weekly walkthroughs and foremen filling out paper hazard observations — 5-10 hours/week of paperwork per site. Cordon Safety automates the evidence layer.
 
 ### Why we can build this as a 2-person student team
 - The technology is genuinely buildable: pre-trained YOLO models on construction PPE datasets achieve 87% mAP out of the box.
@@ -131,7 +131,7 @@ End of 14-day build, we have:
 
 ### Accounts to create (do these tonight, ~30 min total)
 
-1. **GitHub** — already have. Create new private repo `siteiq`.
+1. **GitHub** — already have. Create new private repo `cordon-safety`.
 2. **Supabase** — [supabase.com](https://supabase.com), free tier. Create new project.
 3. **AWS** — already have from previous projects.
 4. **Twilio** — [twilio.com](https://www.twilio.com/try-twilio), free trial gives ~$15 credit + a free Canadian phone number.
@@ -170,7 +170,7 @@ If `cuda.is_available()` returns False after CUDA is installed, you have a PyTor
 ### Repo structure (set up before Phase 1)
 
 ```
-siteiq/
+cordon-safety/
 ├── README.md
 ├── BUILD_PATHWAY.md              # this document
 ├── NOTES.md                      # learning log, questions, gotchas
@@ -212,7 +212,7 @@ SUPABASE_SERVICE_ROLE_KEY=  # backend only, never commit
 AWS_REGION=ca-central-1
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
-S3_BUCKET_NAME=siteiq-violations-dev
+S3_BUCKET_NAME=cordon-safety-violations-dev
 
 # Twilio
 TWILIO_ACCOUNT_SID=
@@ -400,7 +400,7 @@ while True:
     results = model(frame, conf=0.5, verbose=False)
     annotated = results[0].plot()
     
-    cv2.imshow("SiteIQ Detection", annotated)
+    cv2.imshow("Cordon Safety Detection", annotated)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
@@ -613,7 +613,7 @@ while True:
             log_violation(camera_id, v_type, confidence=0.8, image_url=image_url)
     
     annotated = results[0].plot()
-    cv2.imshow("SiteIQ Detection", annotated)
+    cv2.imshow("Cordon Safety Detection", annotated)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 ```
@@ -677,7 +677,7 @@ client = Client(
 
 def send_violation_sms(violation_type: str, camera_name: str, image_url: str):
     body = (
-        f"[SiteIQ] {violation_type.replace('_', ' ').upper()} "
+        f"[Cordon Safety] {violation_type.replace('_', ' ').upper()} "
         f"at {camera_name} — view: {image_url[:50]}..."
     )
     message = client.messages.create(
@@ -720,10 +720,10 @@ ses = boto3.client("ses", region_name=os.environ["AWS_REGION"])
 
 def send_daily_digest(to_email: str, html_body: str):
     ses.send_email(
-        Source="alerts@siteiq.app",  # must be verified in SES
+        Source="alerts@cordon-safety.app",  # must be verified in SES
         Destination={"ToAddresses": [to_email]},
         Message={
-            "Subject": {"Data": "[SiteIQ] Daily Compliance Summary"},
+            "Subject": {"Data": "[Cordon Safety] Daily Compliance Summary"},
             "Body": {"Html": {"Data": html_body}}
         }
     )
@@ -735,7 +735,7 @@ def send_daily_digest(to_email: str, html_body: str):
 
 - **Trial Twilio numbers prepend "Sent from a Twilio trial account" to every SMS.** Looks unprofessional in demo. Upgrade to paid before showing customers.
 - **SMS messages over 160 chars get split into segments** ($$). Keep alerts terse.
-- **Don't include full image URLs in SMS** — they're long and ugly. Use a URL shortener (Bitly free tier) or a `siteiq.app/v/<id>` route.
+- **Don't include full image URLs in SMS** — they're long and ugly. Use a URL shortener (Bitly free tier) or a `cordon-safety.app/v/<id>` route.
 - **Rate limits:** Twilio caps at 1 SMS/second on trial. Real production: 100/sec. For MVP, fine.
 
 ### Deliverable
@@ -892,7 +892,7 @@ You've done this on PatrolPrep:
 
 ### Deliverable
 
-A live URL (e.g., `dashboard.siteiq.app`) where you can:
+A live URL (e.g., `dashboard.cordon-safety.app`) where you can:
 1. Log in
 2. See live violations as they happen (run detection script, watch dashboard update)
 3. Click a violation → see photo
@@ -912,7 +912,7 @@ A live URL (e.g., `dashboard.siteiq.app`) where you can:
 
 ### Tasks
 
-1. **Custom domain** — buy `siteiq.app` or `siteiq.ca` (~$12-30/year). Point to Amplify.
+1. **Custom domain** — buy `cordon-safety.app` or `cordon-safety.ca` (~$12-30/year). Point to Amplify.
 2. **Landing page** at `/` — hero, problem statement, 60-second demo video, "Request a pilot" form (links to a Calendly or just an email).
 3. **Demo mode** — a button on the dashboard that loads pre-seeded fake violations from a test site, so you can demo without your laptop's webcam running. Critical for showing Allan and potential customers.
 4. **Brand polish** — pick a color palette (one primary, one accent), make a simple logo (Figma free + a "construction safety" icon), apply consistently.
@@ -937,7 +937,7 @@ You said you want to co-own ML, not hand it off. Here's how that works practical
 
 ### What "ML ownership" actually means
 
-ML in a product like SiteIQ has four layers, and you can own different ones:
+ML in a product like Cordon Safety has four layers, and you can own different ones:
 
 | Layer                  | What it is                                        | MVP owner      | Long-term owner            |
 | ---------------------- | ------------------------------------------------- | -------------- | -------------------------- |
@@ -961,7 +961,7 @@ Using the dataset from Roboflow + your RTX 4080, train your own YOLO model from 
 yolo detect train data=construction_ppe.yaml model=yolo11s.pt epochs=50 imgsz=640 batch=16 device=0
 ```
 
-After this you can credibly say "I trained the SiteIQ model" without asterisks.
+After this you can credibly say "I trained the Cordon Safety model" without asterisks.
 
 #### 2. Read one technical YOLO paper
 Pick *one* of the YOLO papers — YOLOv8 doesn't have a formal paper but YOLOv9 ([arxiv.org/abs/2402.13616](https://arxiv.org/abs/2402.13616)) does. Read the abstract, the architecture diagram, and the conclusion. Skip the math. Goal: understand the high-level innovation, not derive it.
@@ -1042,7 +1042,7 @@ These will break in production. We accept them for MVP. Document them so future-
 
 1. **Buy the Ultralytics Enterprise License** — pricing is custom; for a pre-revenue student team they sometimes give discounts or free licenses. Email `licensing@ultralytics.com` with your situation.
 2. **Switch to a non-AGPL YOLO implementation** — original Darknet YOLO, or Apache-2.0 forks like [WongKinYiu/yolov7](https://github.com/WongKinYiu/yolov7) or some YOLOX variants. Adds ~20 hours of integration work.
-3. **Open-source the entire SiteIQ codebase under AGPL** — only viable if you go open-core (free codebase, paid hosting/support). Probably not your business model.
+3. **Open-source the entire Cordon Safety codebase under AGPL** — only viable if you go open-core (free codebase, paid hosting/support). Probably not your business model.
 
 **Most likely path:** Email Ultralytics in Phase 4-5, ask for a startup license. Many YC-backed companies have done this. You're not the first.
 
@@ -1125,7 +1125,7 @@ So you can defend scope when someone asks "why doesn't it do X."
 - [WCB Alberta PIR Program](https://www.wcb.ab.ca/insurance-and-premiums/lower-your-premiums/partnerships-in-injury-reduction-(pir).html)
 
 ### Business context
-- See `SiteIQ_Strategy_and_BusinessPlan_v2.docx` (separate document)
+- See `CordonSafety_Strategy_and_BusinessPlan_v2.docx` (separate document)
 - Edmonton Unlimited Student Founders: Grow program calendar (May 5 – Aug 19, 2026)
 
 ---
