@@ -74,6 +74,11 @@ export function ViolationFeed({
     };
   }, [fetchOne]);
 
+  // Defer deriveStatus (uses Date.now()) to client only to prevent hydration mismatch.
+  // Server renders a safe default; client computes real status after mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Re-render every 30s so "Active" pills age out automatically
   const [, force] = useState(0);
   useEffect(() => {
@@ -81,7 +86,20 @@ export function ViolationFeed({
     return () => clearInterval(id);
   }, []);
 
-  const snapshot = useMemo(() => deriveStatus(violations), [violations]);
+  const snapshot = useMemo(() => {
+    if (!mounted) {
+      // Safe server default — avoids Date.now() mismatch
+      return {
+        status: "safe" as const,
+        word: "ALL CLEAR",
+        activeCount: 0,
+        todayCount: 0,
+        lastViolationAt: violations[0]?.detected_at ?? null,
+      };
+    }
+    return deriveStatus(violations);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [violations, mounted, force]);
 
   const handleResolved = useCallback(
     (id: string, status: ResolutionStatus) => {

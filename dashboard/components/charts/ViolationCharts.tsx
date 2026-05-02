@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -29,8 +29,19 @@ interface Props {
 }
 
 export function ViolationCharts({ violations }: Props) {
-  const hourly = useMemo(() => buildHourlyData(violations), [violations]);
-  const byType = useMemo(() => buildByTypeData(violations), [violations]);
+  // Defer chart computation to client — buildHourlyData / buildByTypeData
+  // use Date.now() / new Date() which causes hydration mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const hourly = useMemo(
+    () => (mounted ? buildHourlyData(violations) : []),
+    [violations, mounted],
+  );
+  const byType = useMemo(
+    () => (mounted ? buildByTypeData(violations) : []),
+    [violations, mounted],
+  );
 
   const todayTotal = hourly.reduce((sum, h) => sum + h.count, 0);
   const weekTotal = byType.reduce((sum, t) => sum + t.count, 0);

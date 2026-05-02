@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Check, AlertTriangle } from "lucide-react";
 import { cn, formatTimeSince, formatViolationType } from "@/lib/utils";
@@ -26,6 +26,10 @@ export function DetailPanel({
   const [busy, setBusy] = useState(false);
   const signedUrl = useSignedUrl(violation?.image_url ?? null);
 
+  // Defer locale-dependent formatting to client to avoid hydration mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   async function mark(status: ResolutionStatus) {
     if (!violation) return;
     setBusy(true);
@@ -43,6 +47,25 @@ export function DetailPanel({
       onClose();
     }
   }
+
+  const detectedStr = mounted && violation
+    ? new Date(violation.detected_at).toLocaleString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        month: "short",
+        day: "2-digit",
+        hour12: false,
+      })
+    : "—";
+
+  const ageStr = mounted && violation
+    ? formatTimeSince(violation.detected_at)
+    : "—";
+
+  const resolvedAgoStr = mounted && violation?.resolved_at
+    ? formatTimeSince(violation.resolved_at) + " ago"
+    : "";
 
   return (
     <AnimatePresence>
@@ -118,19 +141,12 @@ export function DetailPanel({
             <dl className="px-6 mt-6 grid grid-cols-2 gap-x-4 gap-y-5">
               <Field
                 label="Detected"
-                value={new Date(violation.detected_at).toLocaleString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                  month: "short",
-                  day: "2-digit",
-                  hour12: false,
-                })}
+                value={detectedStr}
                 mono
               />
               <Field
                 label="Age"
-                value={formatTimeSince(violation.detected_at)}
+                value={ageStr}
                 mono
               />
               <Field
@@ -189,10 +205,7 @@ export function DetailPanel({
                 </div>
               ) : (
                 <div className="text-[12px] text-text-secondary">
-                  Resolved{" "}
-                  {violation.resolved_at
-                    ? formatTimeSince(violation.resolved_at) + " ago"
-                    : ""}
+                  Resolved {resolvedAgoStr}
                 </div>
               )}
             </div>

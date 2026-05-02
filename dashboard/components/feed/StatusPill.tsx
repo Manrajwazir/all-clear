@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { cn, formatViolationType } from "@/lib/utils";
 import type { ResolutionStatus } from "@/lib/supabase/types";
 
@@ -8,7 +11,13 @@ interface StatusPillProps {
 }
 
 export function StatusPill({ status, detectedAt, className }: StatusPillProps) {
-  const ageMs = Date.now() - new Date(detectedAt).getTime();
+  // Date.now() differs between server and client → defer to client
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const ageMs = mounted
+    ? Date.now() - new Date(detectedAt).getTime()
+    : Infinity; // Infinity ensures server renders "Pending", not "Active"
   const isActive = status === "pending" && ageMs < 5 * 60 * 1000;
 
   if (isActive) {
