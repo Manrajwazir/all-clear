@@ -1,5 +1,5 @@
 -- ============================================================
--- SiteIQ — Supabase Schema
+-- Cordon Safety — Supabase Schema
 -- Run this in the Supabase SQL Editor (supabase.com → your project → SQL Editor)
 -- ============================================================
 
@@ -50,7 +50,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE violations;
 INSERT INTO sites (id, name, address)
 VALUES (
   'aaaaaaaa-0000-0000-0000-000000000001',
-  'SiteIQ MVP Site',
+  'Cordon Safety MVP Site',
   'Edmonton, AB'
 );
 

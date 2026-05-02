@@ -1,4 +1,4 @@
-# SiteIQ — Deep Dive: Every File, Every Concept, Every Connection
+# Cordon Safety — Deep Dive: Every File, Every Concept, Every Connection
 
 This document is written for someone who knows the product idea but is still getting comfortable with Python and ML. No jargon is left unexplained. Read this top-to-bottom once; after that use it as a reference.
 
@@ -35,7 +35,7 @@ This document is written for someone who knows the product idea but is still get
 
 ## 1. The Big Picture
 
-SiteIQ watches a camera feed (your webcam in Phase 1, a construction site IP camera later) and detects when a worker is missing a hard hat, safety vest, or mask. When it spots a violation, it logs a record to a database, saves a photo to cloud storage, and sends the site supervisor an SMS.
+Cordon Safety watches a camera feed (your webcam in Phase 1, a construction site IP camera later) and detects when a worker is missing a hard hat, safety vest, or mask. When it spots a violation, it logs a record to a database, saves a photo to cloud storage, and sends the site supervisor an SMS.
 
 The system has two major parts:
 
@@ -149,7 +149,7 @@ The model was trained on 10 different types of objects (classes):
 | 8     | machinery       | Heavy machinery                       |
 | 9     | vehicle         | A vehicle                             |
 
-SiteIQ only cares about classes 2, 3, and 4 — the negative/violation ones. Classes 0, 1, 7 mean the worker is compliant; we draw their boxes (for visual confirmation) but don't fire alerts.
+Cordon Safety only cares about classes 2, 3, and 4 — the negative/violation ones. Classes 0, 1, 7 mean the worker is compliant; we draw their boxes (for visual confirmation) but don't fire alerts.
 
 ### What is mAP?
 
@@ -165,7 +165,7 @@ For a construction site, missing ~23% of violations (recall) is acceptable for a
 
 ## 4. Python Concepts Used in This Codebase
 
-If you're rusty on Python, here are the specific patterns used in SiteIQ code.
+If you're rusty on Python, here are the specific patterns used in Cordon Safety code.
 
 ### Classes
 
@@ -290,7 +290,7 @@ SUPABASE_SERVICE_ROLE_KEY=             # admin key — backend ONLY, never in fr
 AWS_REGION=ca-central-1                # Canadian data center (legal requirement)
 AWS_ACCESS_KEY_ID=                     # your AWS identity
 AWS_SECRET_ACCESS_KEY=                 # your AWS password
-S3_BUCKET_NAME=siteiq-violations-dev   # the S3 "folder" where photos go
+S3_BUCKET_NAME=cordon-safety-violations-dev   # the S3 "folder" where photos go
 
 # Twilio (SMS)
 TWILIO_ACCOUNT_SID=                    # your Twilio account ID
@@ -536,7 +536,7 @@ Database connections are expensive. Creating a new connection for every frame wo
 
 ```python
     body = (
-        f"[SiteIQ] {violation_type.replace('_', ' ').upper()} "
+        f"[Cordon Safety] {violation_type.replace('_', ' ').upper()} "
         f"at {camera_name} — view: {image_url[:50]}..."
     )
 ```
@@ -652,7 +652,7 @@ Draws text onto the frame. Parameters:
 - `cv2.LINE_AA`: anti-aliasing (smooth edges)
 
 ```python
-        cv2.imshow("SiteIQ — Phase 1 Detection", annotated)
+        cv2.imshow("Cordon Safety — Phase 1 Detection", annotated)
         key = cv2.waitKey(1) & 0xFF
 ```
 `imshow` renders the frame in a window. The window title is the first argument.
@@ -791,7 +791,7 @@ The official package for YOLO models. You `pip install ultralytics` and it gives
 Under the hood it uses PyTorch for the neural network math.
 
 ### `opencv-python` (`cv2`)
-OpenCV is a computer vision library. In SiteIQ it does three things:
+OpenCV is a computer vision library. In Cordon Safety it does three things:
 1. `cv2.VideoCapture(0)` — opens the webcam and streams frames
 2. `cv2.imshow(...)` — displays a frame in a GUI window
 3. `cv2.imencode(".jpg", frame)` — converts a NumPy array to JPEG bytes for uploading

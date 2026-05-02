@@ -38,7 +38,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-12">
           <div className="text-[10px] tracking-[0.2em] text-text-tertiary uppercase mb-2">
-            SiteIQ
+            Cordon Safety
           </div>
           <h1 className="text-[32px] font-semibold tracking-tight leading-[1.2]">
             Operations console

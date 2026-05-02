@@ -120,14 +120,14 @@ Open Chrome DevTools → device toolbar → iPhone 15 Pro. Verify:
 
 ## 8 · Deploy to AWS Amplify
 
-1. Push the `dashboard/` folder to GitHub (the existing `siteiq` repo is fine — Amplify can target a subfolder)
+1. Push the `dashboard/` folder to GitHub (the existing `cordon-safety` repo is fine — Amplify can target a subfolder)
 2. Amplify Console → **Host web app** → connect GitHub → select repo + `main` branch
 3. **Build settings** → set the app root to `dashboard` (under "Advanced")
 4. **Environment variables** → add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (same values as `.env.local`)
 5. **Save and deploy** — first build takes ~4 min
 6. Once green, open the `*.amplifyapp.com` URL and verify the same magic-link flow works
 
-Custom domain (`dashboard.siteiq.app`) can wait until Phase 5.
+Custom domain (`dashboard.cordonsafety.app`) can wait until Phase 5.
 
 ---
 

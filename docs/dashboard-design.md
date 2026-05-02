@@ -1,6 +1,6 @@
-# SiteIQ Dashboard — Design System & Build Spec
+# Cordon Safety Dashboard — Design System & Build Spec
 
-> **Audience:** AI coding agents (Claude Code, Antigravity, Copilot) building the SiteIQ supervisor dashboard. Also: humans who need to make design decisions.
+> **Audience:** AI coding agents (Claude Code, Antigravity, Copilot) building the Cordon Safety supervisor dashboard. Also: humans who need to make design decisions.
 >
 > **Authority:** This document is the source of truth for visual design, component patterns, and aesthetic direction. If a request conflicts with this doc, follow this doc and flag the conflict.
 >
@@ -28,7 +28,7 @@
 
 ## 1. Design Philosophy
 
-SiteIQ watches a real workplace where real people could get hurt. The dashboard must communicate this seriousness instantly. It is **not** a generic B2B SaaS app. It is a **mission-critical operations console**.
+Cordon Safety watches a real workplace where real people could get hurt. The dashboard must communicate this seriousness instantly. It is **not** a generic B2B SaaS app. It is a **mission-critical operations console**.
 
 ### The aesthetic direction: Industrial Precision
 

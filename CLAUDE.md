@@ -7,7 +7,7 @@ Always read this file first. It reflects the actual current state of the project
 
 ## What This Is
 
-**SiteIQ** — a SaaS MVP that watches IP cameras on construction sites and detects PPE
+**Cordon Safety** — a SaaS MVP that watches IP cameras on construction sites and detects PPE
 violations (missing hard hats, vests, masks) in real time. When a violation is confirmed:
 1. Snapshot saved to AWS S3
 2. Row inserted into Supabase Postgres
@@ -199,7 +199,7 @@ Supabase Realtime subscription (WebSocket)
 Three tables: `sites` → `cameras` → `violations`
 
 Seed data (matches `CAMERA_ID` in `main.py`):
-- Site UUID: `aaaaaaaa-0000-0000-0000-000000000001` (SiteIQ MVP Site, Edmonton AB)
+- Site UUID: `aaaaaaaa-0000-0000-0000-000000000001` (Cordon Safety MVP Site, Edmonton AB)
 - Camera UUID: `00000000-0000-0000-0000-000000000001` (Webcam Dev Camera)
 
 `violations.resolution_status`: `pending` | `resolved` | `false_positive`

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 /**
  * Hook that takes an S3 URL like:
- *   https://siteiq-violations-dev.s3.amazonaws.com/violations/00000.../2026-05-01T....jpg
+ *   https://cordon-safety-violations-dev.s3.amazonaws.com/violations/00000.../2026-05-01T....jpg
  *
  * and returns a pre-signed URL via /api/signed-url that the browser can actually load.
  *

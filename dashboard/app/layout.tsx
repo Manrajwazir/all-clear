@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { BGPattern } from "@/components/ui/bg-pattern";
 import "./globals.css";
 
 const geist = Geist({
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SiteIQ — Operations Console",
+  title: "Cordon Safety — Operations Console",
   description: "Real-time PPE violation monitoring for construction sites.",
 };
 
@@ -24,8 +25,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
-      <body className="bg-surface-base text-text-primary antialiased">
-        {children}
+      <body className="text-text-primary antialiased">
+        <BGPattern variant="grid" mask="fade-edges" size={32} fill="#1A1D26" />
+        <div className="relative z-10">{children}</div>
       </body>
     </html>
   );

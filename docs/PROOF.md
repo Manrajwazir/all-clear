@@ -1,4 +1,4 @@
-# SiteIQ — Industry & Technology Validation Log (PROOF.md)
+# Cordon Safety — Industry & Technology Validation Log (PROOF.md)
 
 Evidence that the market exists, the technology works, and we have standing to build this.
 Update before every investor/mentor conversation.
@@ -56,7 +56,7 @@ Timestamped surveillance evidence of PPE compliance has significant value in civ
 Companies currently have zero documented evidence of daily safety compliance when incidents
 lead to lawsuits.
 - One avoided settlement = $500K–$2M saved
-- SiteIQ at $700/month = $8,400/year
+- Cordon Safety at $700/month = $8,400/year
 - **ROI math:** Product pays for itself if it contributes to avoiding one lawsuit in its lifetime
 - **Implication:** "Incident defense evidence" is a legitimate third value prop. Unlocks legal
   and finance budgets, not just safety budgets.
@@ -110,7 +110,7 @@ pitching to legal teams. Do not overstate until exceptions are precisely underst
 
 ### Edmonton Unlimited Student Founders: Grow — Accepted
 - Backed by Alberta Innovates, City of Edmonton, PrairiesCan
-- Allan Waine confirmed: pivot from GridSync to SiteIQ approved conditional on
+- Allan Waine confirmed: pivot from GridSync to Cordon Safety approved conditional on
   MVP + industry validation by May 12, 2026
 - Allan's direct insight (April 21): energy software sales cycles are long —
   construction has faster buyer access

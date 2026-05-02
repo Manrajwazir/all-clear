@@ -23,7 +23,7 @@ const s3 = new S3Client({
   },
 });
 
-const BUCKET = process.env.S3_BUCKET_NAME || "siteiq-violations-dev";
+const BUCKET = process.env.S3_BUCKET_NAME || "cordon-safety-violations-dev";
 const EXPIRY = 3600; // 1 hour
 
 export async function GET(request: NextRequest) {

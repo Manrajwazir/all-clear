@@ -1,4 +1,4 @@
-# SiteIQ — Open Questions (QUESTIONS.md)
+# Cordon Safety — Open Questions (QUESTIONS.md)
 
 Things to research, verify, or ask about. Move to NOTES.md or PROOF.md once answered.
 Add a date when you log a question. Strike through when answered.
@@ -54,10 +54,10 @@ Add a date when you log a question. Strike through when answered.
 - [ ] **Pilot pricing** — $500-900/month is the target range. What would make a GC choose
   the $900 tier over the $500 tier? What features justify it?
 
-- [ ] **SALUS API** — Does SALUS have a public API? Could SiteIQ violations feed directly
+- [ ] **SALUS API** — Does SALUS have a public API? Could Cordon Safety violations feed directly
   into a SALUS incident report? This could be a strong integration story.
 
-- [ ] **COR audit value** — Can timestamped violation data from SiteIQ help a company
+- [ ] **COR audit value** — Can timestamped violation data from Cordon Safety help a company
   prepare for their COR audit? Does the auditor care about compliance tracking data
   beyond incident records?
 
@@ -87,5 +87,5 @@ Add a date when you log a question. Strike through when answered.
 - [ ] **Stub pages** — cameras/, history/, reports/, settings/, account/ pages are
   empty stubs. Decide which to flesh out for Demo Day vs defer.
 
-- [ ] **Custom domain** — `dashboard.siteiq.app` or similar. Purchase domain,
+- [ ] **Custom domain** — `dashboard.cordonsafety.app` or similar. Purchase domain,
   configure in Amplify. Phase 5 task.

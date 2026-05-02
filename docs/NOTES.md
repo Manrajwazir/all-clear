@@ -1,4 +1,4 @@
-# SiteIQ — Learning Log (NOTES.md)
+# Cordon Safety — Learning Log (NOTES.md)
 
 Running log of things learned, gotchas hit, and concepts understood.
 Update this as you build. By Demo Day this should be long.
