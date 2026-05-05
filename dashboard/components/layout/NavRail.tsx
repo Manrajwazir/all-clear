@@ -96,7 +96,7 @@ function NavItem({
 }: {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string; size?: number }>;
+  icon: React.ComponentType<{ className?: string; size?: number; strokeWidth?: number }>;
   active: boolean;
 }) {
   return (
