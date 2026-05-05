@@ -10,6 +10,7 @@ Usage:
     violations = detector.find_violations(results[0])
 """
 
+import torch
 from ultralytics import YOLO
 
 
@@ -21,17 +22,19 @@ VIOLATION_CLASSES = {"NO-Hardhat", "NO-Safety Vest", "NO-Mask"}
 
 class PPEDetector:
     def __init__(self, model_path: str = "models/ppe_v1.pt"):
-        """Load the YOLO model from disk."""
+        """Load the YOLO model from disk, explicitly on GPU if available."""
+        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.model = YOLO(model_path)
+        self.model.to(self.device)
         self.class_names = self.model.names  # dict: {0: 'Hardhat', 1: 'Mask', ...}
-        print(f"[detector] Model loaded. Classes: {self.class_names}")
+        print(f"[detector] Model loaded on {self.device.upper()}. Classes: {list(self.class_names.values())}")
 
     def predict(self, source, confidence: float = 0.6):
         """
         Run inference on a source (image path, video path, frame, or camera index).
         Returns a list of ultralytics Result objects.
         """
-        results = self.model.predict(source=source, conf=confidence, verbose=False)
+        results = self.model.predict(source=source, conf=confidence, verbose=False, device=self.device)
         return results
 
     def find_violations(self, result) -> list[dict]:
