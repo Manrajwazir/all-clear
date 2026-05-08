@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -266,13 +267,13 @@ export default function LoginPage() {
       />
 
       {/* ── Back button — top left ── */}
-      <a
+      <Link
         href="/"
         className="absolute top-6 left-6 z-20 flex items-center gap-1.5 text-[11px] tracking-[0.08em] text-text-tertiary hover:text-text-secondary transition-colors duration-200"
       >
         <span className="text-[14px]">&#8592;</span>
         Home
-      </a>
+      </Link>
 
       {/* ── Login Card — always visible, centered ── */}
       <div className="relative z-10 w-full max-w-[380px] mx-4">
