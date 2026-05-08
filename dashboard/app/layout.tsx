@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cordon Safety — Operations Console",
+  title: "All Clear — Operations Console",
   description: "Real-time PPE violation monitoring for construction sites.",
 };
 

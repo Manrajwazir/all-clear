@@ -108,11 +108,11 @@ try:
         "s3",
         region_name=os.environ.get("AWS_REGION", "ca-central-1")
     )
-    test_key = "cordon-safety-test/connection_test.txt"
+    test_key = "allclear-test/connection_test.txt"
     s3.put_object(
         Bucket=os.environ["S3_BUCKET_NAME"],
         Key=test_key,
-        Body=b"Cordon Safety S3 connection test",
+        Body=b"All Clear S3 connection test",
         ContentType="text/plain"
     )
     print(f"PASS — Uploaded test file to s3://{os.environ['S3_BUCKET_NAME']}/{test_key}")

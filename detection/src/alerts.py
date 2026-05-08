@@ -48,7 +48,7 @@ def send_violation_sms(violation_type: str, camera_name: str, image_url: str) ->
     try:
         client = get_twilio_client()
         body = (
-            f"[Cordon Safety] {violation_type.replace('_', ' ').upper()} "
+            f"[All Clear] {violation_type.replace('_', ' ').upper()} "
             f"at {camera_name} — view: {image_url[:50]}..."
         )
         message = client.messages.create(
@@ -83,10 +83,10 @@ def send_daily_digest(to_email: str, html_body: str):
     try:
         ses = get_ses_client()
         ses.send_email(
-            Source="alerts@cordonsafety.app",  # must be verified in SES
+            Source="alerts@allclear.app",  # must be verified in SES
             Destination={"ToAddresses": [to_email]},
             Message={
-                "Subject": {"Data": "[Cordon Safety] Daily Compliance Summary"},
+                "Subject": {"Data": "[All Clear] Daily Compliance Summary"},
                 "Body": {"Html": {"Data": html_body}}
             }
         )

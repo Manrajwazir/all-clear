@@ -1,5 +1,5 @@
 """
-main.py — Cordon Safety Detection Service Entry Point
+main.py — All Clear Detection Service Entry Point
 -----------------------------------------------
 Phase 2: live detection loop + debounce + Supabase logging + S3 snapshots.
 
@@ -108,7 +108,7 @@ def run_detection():
         return
 
     print("\n" + "=" * 62)
-    print("  Cordon Safety — Live PPE Detection + Violation Logger")
+    print("  All Clear — Live PPE Detection + Violation Logger")
     print(f"  Monitoring: {', '.join(sorted(VIOLATION_CLASSES))}")
     print(f"  Debounce: {DEBOUNCE_F} frames | Cooldown: {COOLDOWN_S}s")
     mode = "Supabase + S3" if STORAGE_ENABLED else "LOCAL LOG ONLY"
@@ -203,7 +203,7 @@ def run_detection():
                         f"camera={CAMERA_ID}"
                     )
 
-        cv2.imshow("Cordon Safety — Detection", annotated)
+        cv2.imshow("All Clear — Detection", annotated)
 
         key = cv2.waitKey(30) & 0xFF
         if key == ord('q') or key == 27:  # 27 = ESC

@@ -34,7 +34,7 @@ try:
     client = Client(os.environ["TWILIO_ACCOUNT_SID"], os.environ["TWILIO_AUTH_TOKEN"])
 
     message = client.messages.create(
-        body="[Cordon Safety] Test alert — Twilio is connected.",
+        body="[All Clear] Test alert — Twilio is connected.",
         from_=os.environ["TWILIO_FROM_NUMBER"],
         to=os.environ["TWILIO_TO_NUMBER"]
     )

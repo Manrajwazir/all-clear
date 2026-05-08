@@ -1,4 +1,4 @@
-# Cordon Safety
+# All Clear
 
 AI-powered construction safety monitoring. Detects PPE violations in real time via YOLO, logs them to Supabase, saves snapshots to S3, and texts the supervisor.
 

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
 export const metadata = {
-  title: "SiteIQ — AI-Powered Construction Safety Monitoring",
+  title: "All Clear — AI-Powered Construction Safety Monitoring",
   description:
     "Real-time PPE violation detection for construction sites. Camera to alert in under 5 seconds. Built for Alberta construction.",
 };
@@ -46,7 +46,7 @@ export default async function LandingPage() {
       {/* ── Nav ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 sm:px-12 py-4 bg-surface-base/80 backdrop-blur-md">
         <span className="font-mono text-[13px] tracking-[0.12em] text-text-primary font-semibold">
-          SITEIQ
+          ALL CLEAR
         </span>
         <div className="flex items-center gap-4">
           {stats.isLive && (
@@ -331,7 +331,7 @@ export default async function LandingPage() {
               Contact
             </a>
             <a
-              href="https://github.com/Manrajwazir/SiteIQ"
+              href="https://github.com/Manrajwazir/SiteIQ"  /* repo name stays as-is on GitHub */
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-text-secondary transition-colors"

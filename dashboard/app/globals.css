@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* =============================================================
-   Cordon Safety Design Tokens — see docs/dashboard-design.md §3
+   All Clear Design Tokens — see docs/dashboard-design.md §3
    ============================================================= */
 :root {
   /* === SURFACES (luminosity-based hierarchy, no borders) === */

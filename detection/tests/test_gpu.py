@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-print("\n=== SiteIQ GPU Diagnostic ===\n")
+print("\n=== All Clear GPU Diagnostic ===\n")
 
 # --- 1. PyTorch CUDA ---
 import torch

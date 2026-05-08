@@ -41,7 +41,7 @@ export function NavRail() {
         <div className="flex flex-col items-center gap-1">
           <div className="h-10 w-10 grid place-items-center mb-4">
             <span className="font-mono text-[10px] tracking-[0.18em] text-text-secondary">
-              CS
+              AC
             </span>
           </div>
           {TOP_ITEMS.map((item) => (
