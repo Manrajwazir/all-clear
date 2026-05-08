@@ -241,7 +241,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden flex items-center justify-center"
+    <main className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center"
       style={{ background: "var(--surface-base)" }}
     >
       {/* Particle canvas — full background */}
@@ -265,14 +265,26 @@ export default function LoginPage() {
         }}
       />
 
+      {/* ── Back button — top left ── */}
+      <a
+        href="/"
+        className="absolute top-6 left-6 z-20 flex items-center gap-1.5 text-[11px] tracking-[0.08em] text-text-tertiary hover:text-text-secondary transition-colors duration-200"
+      >
+        <span className="text-[14px]">&#8592;</span>
+        Home
+      </a>
+
       {/* ── Login Card — always visible, centered ── */}
       <div className="relative z-10 w-full max-w-[380px] mx-4">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <span className="font-mono text-[13px] tracking-[0.2em] text-text-primary font-semibold">
+        {/* Logo — big and prominent */}
+        <div className="text-center mb-10">
+          <h1 className="font-mono text-[28px] sm:text-[36px] tracking-[0.18em] text-text-primary font-bold">
             ALL CLEAR
-          </span>
-          <div className="mt-2 w-8 h-[1px] bg-status-safe/40 mx-auto" />
+          </h1>
+          <div className="mt-3 w-10 h-[2px] bg-status-safe/50 mx-auto" />
+          <p className="mt-3 text-[11px] tracking-[0.14em] uppercase text-text-tertiary">
+            Operations Console
+          </p>
         </div>
 
         {/* Card */}
@@ -286,9 +298,9 @@ export default function LoginPage() {
         >
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-[20px] font-semibold text-text-primary tracking-[-0.01em]">
-              Operations Console
-            </h1>
+            <h2 className="text-[18px] font-semibold text-text-primary tracking-[-0.01em]">
+              Sign in
+            </h2>
             <p className="text-[12px] text-text-secondary mt-1.5 leading-relaxed">
               Enter your email to receive a one-time sign-in link.
             </p>
