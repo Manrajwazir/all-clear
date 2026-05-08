@@ -242,27 +242,32 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center"
+    <main
+      className="relative min-h-screen w-full overflow-hidden"
       style={{ background: "var(--surface-base)" }}
     >
-      {/* Particle canvas — full background */}
+      {/* ── Particle canvas — full background ── */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
-        style={{ opacity: 0.5 }}
+        style={{ opacity: 0.55 }}
       />
 
-      {/* Subtle radial glow behind form */}
+      {/* ── Gradient: darkens bottom 40% so card reads clean ── */}
       <div
-        className="absolute pointer-events-none"
+        className="absolute inset-x-0 bottom-0 pointer-events-none"
         style={{
-          width: "600px",
-          height: "600px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(0,217,163,0.06) 0%, transparent 70%)",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
+          height: "55%",
+          background: "linear-gradient(to top, var(--surface-base) 30%, transparent 100%)",
+        }}
+      />
+
+      {/* ── Gradient: subtle top vignette so logo text pops ── */}
+      <div
+        className="absolute inset-x-0 top-0 pointer-events-none"
+        style={{
+          height: "35%",
+          background: "linear-gradient(to bottom, rgba(10,11,15,0.7) 0%, transparent 100%)",
         }}
       />
 
@@ -275,109 +280,116 @@ export default function LoginPage() {
         Home
       </Link>
 
-      {/* ── Login Card — always visible, centered ── */}
-      <div className="relative z-10 w-full max-w-[380px] mx-4">
-        {/* Logo — big and prominent */}
-        <div className="text-center mb-10">
-          <h1 className="font-mono text-[28px] sm:text-[36px] tracking-[0.18em] text-text-primary font-bold">
-            ALL CLEAR
-          </h1>
-          <div className="mt-3 w-10 h-[2px] bg-status-safe/50 mx-auto" />
-          <p className="mt-3 text-[11px] tracking-[0.14em] uppercase text-text-tertiary">
-            Operations Console
-          </p>
-        </div>
+      {/* ── Zone 1: Logo — top 25% ── */}
+      <div className="absolute top-0 left-0 right-0 flex flex-col items-center justify-center z-10"
+        style={{ height: "30vh", paddingTop: "3rem" }}
+      >
+        <h1 className="font-mono text-[32px] sm:text-[42px] tracking-[0.18em] text-text-primary font-bold leading-none">
+          ALL CLEAR
+        </h1>
+        <div className="mt-3 w-12 h-[2px] bg-status-safe/60 mx-auto" />
+        <p className="mt-3 text-[11px] tracking-[0.18em] uppercase text-text-secondary">
+          Operations Console
+        </p>
+      </div>
 
-        {/* Card */}
-        <div
-          className="rounded-xl px-8 py-8 ring-1 ring-inset ring-white/[0.06]"
-          style={{
-            background: "rgba(19, 21, 27, 0.85)",
-            backdropFilter: "blur(24px)",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5), 0 0 80px rgba(0,217,163,0.04)",
-          }}
-        >
-          {/* Header */}
-          <div className="mb-6">
-            <h2 className="text-[18px] font-semibold text-text-primary tracking-[-0.01em]">
-              Sign in
-            </h2>
-            <p className="text-[12px] text-text-secondary mt-1.5 leading-relaxed">
-              Enter your email to receive a one-time sign-in link.
-            </p>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="login-email"
-                className="block text-[10px] tracking-[0.12em] uppercase text-text-tertiary mb-2"
-              >
-                Email address
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                autoComplete="email"
-                autoFocus
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={status === "sending" || status === "sent"}
-                placeholder="you@company.com"
-                className={cn(
-                  "w-full rounded-lg px-4 py-3",
-                  "text-[13px] text-text-primary placeholder:text-text-tertiary",
-                  "bg-surface-inset ring-1 ring-inset ring-white/[0.06]",
-                  "focus:outline-none focus:ring-status-safe/40",
-                  "disabled:opacity-50 transition-all duration-200"
-                )}
-              />
+      {/* ── Zone 2: Sign-in card — centered in bottom 70% ── */}
+      <div
+        className="absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center px-4 z-10"
+        style={{ top: "28vh", paddingBottom: "4rem" }}
+      >
+        <div className="w-full max-w-[380px]">
+          {/* Card */}
+          <div
+            className="rounded-xl px-8 py-8 ring-1 ring-inset ring-white/[0.06]"
+            style={{
+              background: "rgba(19, 21, 27, 0.92)",
+              backdropFilter: "blur(28px)",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.6), 0 0 80px rgba(0,217,163,0.05)",
+            }}
+          >
+            {/* Header */}
+            <div className="mb-6">
+              <h2 className="text-[18px] font-semibold text-text-primary tracking-[-0.01em]">
+                Sign in
+              </h2>
+              <p className="text-[12px] text-text-secondary mt-1.5 leading-relaxed">
+                Enter your email to receive a one-time sign-in link.
+              </p>
             </div>
 
-            <button
-              type="submit"
-              disabled={status === "sending" || status === "sent"}
-              className={cn(
-                "w-full rounded-lg py-3 text-[12px] tracking-[0.06em] font-semibold",
-                "transition-all duration-200",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                status === "sent"
-                  ? "bg-status-safe/20 text-status-safe ring-1 ring-inset ring-status-safe/20"
-                  : "bg-status-safe text-text-on-status hover:brightness-110 shadow-glow-safe"
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="login-email"
+                  className="block text-[10px] tracking-[0.12em] uppercase text-text-tertiary mb-2"
+                >
+                  Email address
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={status === "sending" || status === "sent"}
+                  placeholder="you@company.com"
+                  className={cn(
+                    "w-full rounded-lg px-4 py-3",
+                    "text-[13px] text-text-primary placeholder:text-text-tertiary",
+                    "bg-surface-inset ring-1 ring-inset ring-white/[0.06]",
+                    "focus:outline-none focus:ring-status-safe/40",
+                    "disabled:opacity-50 transition-all duration-200"
+                  )}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={status === "sending" || status === "sent"}
+                className={cn(
+                  "w-full rounded-lg py-3 text-[12px] tracking-[0.06em] font-semibold",
+                  "transition-all duration-200",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  status === "sent"
+                    ? "bg-status-safe/20 text-status-safe ring-1 ring-inset ring-status-safe/20"
+                    : "bg-status-safe text-text-on-status hover:brightness-110 shadow-glow-safe"
+                )}
+              >
+                {status === "sending"
+                  ? "Sending..."
+                  : status === "sent"
+                    ? "Check your inbox"
+                    : "Send magic link"}
+              </button>
+
+              {/* Status messages */}
+              {status === "sent" && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-status-safe/[0.08] ring-1 ring-inset ring-status-safe/10">
+                  <span className="text-status-safe text-[14px] mt-[1px]">✓</span>
+                  <p className="text-[11px] text-status-safe/80 leading-relaxed">
+                    Link sent to <span className="text-status-safe font-medium">{email}</span>.
+                    Open it on this device.
+                  </p>
+                </div>
               )}
-            >
-              {status === "sending"
-                ? "Sending..."
-                : status === "sent"
-                  ? "Check your inbox"
-                  : "Send magic link"}
-            </button>
+              {status === "error" && error && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-status-critical/[0.08] ring-1 ring-inset ring-status-critical/10">
+                  <span className="text-status-critical text-[14px] mt-[1px]">!</span>
+                  <p className="text-[11px] text-status-critical/80 leading-relaxed">{error}</p>
+                </div>
+              )}
+            </form>
+          </div>
 
-            {/* Status messages */}
-            {status === "sent" && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-status-safe/[0.08] ring-1 ring-inset ring-status-safe/10">
-                <span className="text-status-safe text-[14px] mt-[1px]">✓</span>
-                <p className="text-[11px] text-status-safe/80 leading-relaxed">
-                  Link sent to <span className="text-status-safe font-medium">{email}</span>.
-                  Open it on this device.
-                </p>
-              </div>
-            )}
-            {status === "error" && error && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-status-critical/[0.08] ring-1 ring-inset ring-status-critical/10">
-                <span className="text-status-critical text-[14px] mt-[1px]">!</span>
-                <p className="text-[11px] text-status-critical/80 leading-relaxed">{error}</p>
-              </div>
-            )}
-          </form>
+          {/* Footer */}
+          <p className="text-center text-[10px] text-text-tertiary mt-5 tracking-wide">
+            AI-powered construction safety monitoring
+          </p>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-[10px] text-text-tertiary mt-6 tracking-wide">
-          AI-powered construction safety monitoring
-        </p>
       </div>
     </main>
   );
