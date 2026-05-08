@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { createBrowserClient } from "@supabase/ssr";
 
 // Particle engine 
 interface Vector2D {
@@ -344,8 +343,8 @@ export default function LoginPage() {
               {status === "sending"
                 ? "Sending…"
                 : status === "sent"
-                ? "Check your inbox"
-                : "Send magic link"}
+                  ? "Check your inbox"
+                  : "Send magic link"}
             </button>
 
             {status === "sent" && (
