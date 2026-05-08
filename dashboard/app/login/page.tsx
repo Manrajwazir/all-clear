@@ -5,8 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { createBrowserClient } from "@supabase/ssr";
 
-
-
 // Particle engine 
 interface Vector2D {
   x: number;
@@ -19,14 +17,14 @@ class Particle {
   acc: Vector2D = { x: 0, y: 0 };
   target: Vector2D = { x: 0, y: 0 };
 
-  maxSpeed = 4;
-  maxForce = 0.2;
+  maxSpeed = 2;
+  maxForce = 0.08;
   isKilled = false;
 
   sr = 0; sg = 0; sb = 0;
   tr = 255; tg = 255; tb = 255;
   colorWeight = 0;
-  colorBlendRate = Math.random() * 0.03 + 0.002;
+  colorBlendRate = Math.random() * 0.01 + 0.001;
 
   move() {
     const dx = this.target.x - this.pos.x;
@@ -72,7 +70,7 @@ class Particle {
   }
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers 
 
 function spawnWord(
   word: string,
@@ -116,8 +114,8 @@ function spawnWord(
       p = new Particle();
       p.pos.x = Math.random() * canvas.width;
       p.pos.y = Math.random() * canvas.height;
-      p.maxSpeed = Math.random() * 5 + 3;
-      p.maxForce = p.maxSpeed * 0.05;
+      p.maxSpeed = Math.random() * 2 + 1.5;
+      p.maxForce = p.maxSpeed * 0.04;
       particles.push(p);
     }
     p.sr = p.sr + (p.tr - p.sr) * p.colorWeight;
@@ -130,9 +128,9 @@ function spawnWord(
   for (let i = pi; i < particles.length; i++) particles[i].kill(canvas.width, canvas.height);
 }
 
-// ─── Component ─────────────────────────────────────────────────────────────────
+// Component
 
-const WORDS = ["ALL CLEAR", "SECURE", "ENSURE"];
+const WORDS = ["ALL CLEAR", "SECURE", "ENSURED"];
 
 type Status = "idle" | "sending" | "sent" | "error";
 
@@ -213,7 +211,7 @@ export default function LoginPage() {
         }
 
       frameRef.current++;
-      if (frameRef.current % 200 === 0) {
+      if (frameRef.current % 400 === 0) {
         wordIdxRef.current = (wordIdxRef.current + 1) % WORDS.length;
         spawnWord(WORDS[wordIdxRef.current], canvas, particlesRef.current);
       }
