@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-// Particle engine 
-interface Vector2D {
-  x: number;
-  y: number;
-}
+/* ================================================================
+   Particle Engine — renders text as flowing particle formations
+   ================================================================ */
+
+interface Vector2D { x: number; y: number }
 
 class Particle {
   pos: Vector2D = { x: 0, y: 0 };
@@ -20,10 +20,11 @@ class Particle {
   maxForce = 0.08;
   isKilled = false;
 
+  // Color channels — start/target for smooth blend
   sr = 0; sg = 0; sb = 0;
-  tr = 255; tg = 255; tb = 255;
+  tr = 0; tg = 217; tb = 163; // --status-safe teal
   colorWeight = 0;
-  colorBlendRate = Math.random() * 0.01 + 0.001;
+  colorBlendRate = Math.random() * 0.01 + 0.002;
 
   move() {
     const dx = this.target.x - this.pos.x;
@@ -45,7 +46,8 @@ class Particle {
   }
 
   draw(ctx: CanvasRenderingContext2D) {
-    if (this.colorWeight < 1) this.colorWeight = Math.min(this.colorWeight + this.colorBlendRate, 1);
+    if (this.colorWeight < 1)
+      this.colorWeight = Math.min(this.colorWeight + this.colorBlendRate, 1);
     const r = Math.round(this.sr + (this.tr - this.sr) * this.colorWeight);
     const g = Math.round(this.sg + (this.tg - this.sg) * this.colorWeight);
     const b = Math.round(this.sb + (this.tb - this.sb) * this.colorWeight);
@@ -62,37 +64,40 @@ class Particle {
       this.sr = this.sr + (this.tr - this.sr) * this.colorWeight;
       this.sg = this.sg + (this.tg - this.sg) * this.colorWeight;
       this.sb = this.sb + (this.tb - this.sb) * this.colorWeight;
-      this.tr = 0; this.tg = 0; this.tb = 0;
+      this.tr = 10; this.tg = 11; this.tb = 15; // fade to surface-base
       this.colorWeight = 0;
       this.isKilled = true;
     }
   }
 }
 
-// Helpers 
+/* ── Brand-aligned color palette for particle text ── */
+const PALETTE = [
+  { r: 0, g: 217, b: 163 },   // --status-safe  (teal)
+  { r: 74, g: 163, b: 255 },   // --status-info  (blue)
+  { r: 0, g: 180, b: 140 },    // teal variant
+];
 
 function spawnWord(
   word: string,
   canvas: HTMLCanvasElement,
-  particles: Particle[]
+  particles: Particle[],
+  colorIdx: number,
 ) {
   const off = document.createElement("canvas");
   off.width = canvas.width;
   off.height = canvas.height;
   const octx = off.getContext("2d")!;
-  const fs = Math.min(canvas.width / 4, 110);
+  const fs = Math.min(canvas.width / 5, 90);
   octx.fillStyle = "white";
-  octx.font = `bold ${fs}px Arial`;
+  octx.font = `600 ${fs}px "Geist", system-ui, sans-serif`;
   octx.textAlign = "center";
   octx.textBaseline = "middle";
-  octx.fillText(word, off.width / 2, off.height / 2);
+  // Position text in upper 40% of canvas so it doesn't overlap the login form
+  octx.fillText(word, off.width / 2, off.height * 0.35);
 
   const { data: px } = octx.getImageData(0, 0, off.width, off.height);
-  const col = {
-    r: Math.random() * 200 + 55,
-    g: Math.random() * 200 + 55,
-    b: Math.random() * 200 + 55,
-  };
+  const col = PALETTE[colorIdx % PALETTE.length];
 
   const coords: number[] = [];
   const step = 5;
@@ -127,9 +132,11 @@ function spawnWord(
   for (let i = pi; i < particles.length; i++) particles[i].kill(canvas.width, canvas.height);
 }
 
-// Component
+/* ================================================================
+   Login Page Component
+   ================================================================ */
 
-const WORDS = ["ALL CLEAR", "SECURE", "ENSURED"];
+const WORDS = ["ALL CLEAR", "PROTECTED", "SECURED"];
 
 type Status = "idle" | "sending" | "sent" | "error";
 
@@ -141,24 +148,9 @@ export default function LoginPage() {
   const wordIdxRef = useRef(0);
   const mouseRef = useRef({ x: 0, y: 0, down: false, right: false });
 
-  const [showForm, setShowForm] = useState(false);
-  const [formMounted, setFormMounted] = useState(false);
-
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
-
-  // open: mount first, then animate in
-  function openForm() {
-    setFormMounted(true);
-    setTimeout(() => setShowForm(true), 10);
-  }
-
-  // close: animate out, then unmount
-  function closeForm() {
-    setShowForm(false);
-    setTimeout(() => setFormMounted(false), 350);
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -174,6 +166,7 @@ export default function LoginPage() {
     setStatus("sent");
   }
 
+  /* ── Canvas lifecycle ── */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -186,12 +179,13 @@ export default function LoginPage() {
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
-    spawnWord(WORDS[0], canvas, particlesRef.current);
+    spawnWord(WORDS[0], canvas, particlesRef.current, 0);
 
     const ctx = canvas.getContext("2d")!;
 
     const tick = () => {
-      ctx.fillStyle = "rgba(0,0,0,0.12)";
+      // Transparent black fill for trail effect — matches surface-base
+      ctx.fillStyle = "rgba(10, 11, 15, 0.12)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const particles = particlesRef.current;
@@ -212,7 +206,7 @@ export default function LoginPage() {
       frameRef.current++;
       if (frameRef.current % 400 === 0) {
         wordIdxRef.current = (wordIdxRef.current + 1) % WORDS.length;
-        spawnWord(WORDS[wordIdxRef.current], canvas, particlesRef.current);
+        spawnWord(WORDS[wordIdxRef.current], canvas, particlesRef.current, wordIdxRef.current);
       }
 
       animRef.current = requestAnimationFrame(tick);
@@ -247,85 +241,84 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main className="relative min-h-screen w-full bg-black overflow-hidden flex items-end justify-center pb-14 px-6">
-      {/* Particle canvas */}
+    <main className="relative min-h-screen w-full overflow-hidden flex items-center justify-center"
+      style={{ background: "var(--surface-base)" }}
+    >
+      {/* Particle canvas — full background */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
-        style={{ opacity: 0.65 }}
+        style={{ opacity: 0.5 }}
       />
 
-      {/* "All Clear" wordmark — top left */}
-      <div className="absolute top-8 left-8 z-10 select-none">
-        <span className="text-[11px] tracking-[0.25em] text-white/30 uppercase font-light">
-          All Clear
-        </span>
-      </div>
+      {/* Subtle radial glow behind form */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          width: "600px",
+          height: "600px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(0,217,163,0.06) 0%, transparent 70%)",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+        }}
+      />
 
-      {/* Sign in pill button */}
-      <button
-        onClick={openForm}
-        className={cn(
-          "relative z-10 px-7 py-2.5 rounded-full text-sm font-medium tracking-wide",
-          "bg-white/8 border border-white/20 text-white/80 backdrop-blur-md",
-          "hover:bg-white/14 transition-all duration-300",
-          showForm || formMounted
-            ? "opacity-0 pointer-events-none translate-y-1"
-            : "opacity-100 translate-y-0"
-        )}
-      >
-        Sign in
-      </button>
+      {/* ── Login Card — always visible, centered ── */}
+      <div className="relative z-10 w-full max-w-[380px] mx-4">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <span className="font-mono text-[13px] tracking-[0.2em] text-text-primary font-semibold">
+            ALL CLEAR
+          </span>
+          <div className="mt-2 w-8 h-[1px] bg-status-safe/40 mx-auto" />
+        </div>
 
-      {/* Login card */}
-      {formMounted && (
+        {/* Card */}
         <div
-          className={cn(
-            "absolute z-10 bottom-14 w-72 rounded-2xl",
-            "border border-white/10 bg-black/75 backdrop-blur-md",
-            "px-6 py-5",
-            "transition-all duration-350 ease-out",
-            showForm
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-3 pointer-events-none"
-          )}
+          className="rounded-xl px-8 py-8 ring-1 ring-inset ring-white/[0.06]"
+          style={{
+            background: "rgba(19, 21, 27, 0.85)",
+            backdropFilter: "blur(24px)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5), 0 0 80px rgba(0,217,163,0.04)",
+          }}
         >
           {/* Header */}
-          <div className="mb-5">
-            <p className="text-[9px] tracking-[0.22em] text-white/30 uppercase mb-1">
-              All Clear
-            </p>
-            <h1 className="text-[17px] font-semibold text-white leading-snug">
-              Operations console
+          <div className="mb-6">
+            <h1 className="text-[20px] font-semibold text-text-primary tracking-[-0.01em]">
+              Operations Console
             </h1>
-            <p className="text-[11px] text-white/40 mt-1.5 leading-relaxed">
-              We&apos;ll send a one-time magic link — no password needed.
+            <p className="text-[12px] text-text-secondary mt-1.5 leading-relaxed">
+              Enter your email to receive a one-time sign-in link.
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
-                htmlFor="email"
-                className="block text-[9px] tracking-[0.1em] uppercase text-white/35 mb-1.5"
+                htmlFor="login-email"
+                className="block text-[10px] tracking-[0.12em] uppercase text-text-tertiary mb-2"
               >
-                Email
+                Email address
               </label>
               <input
-                id="email"
+                id="login-email"
                 type="email"
                 autoComplete="email"
+                autoFocus
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={status === "sending" || status === "sent"}
                 placeholder="you@company.com"
                 className={cn(
-                  "w-full bg-white/6 border border-white/12 rounded-lg px-3 py-2",
-                  "text-[12px] text-white placeholder:text-white/20",
-                  "focus:outline-none focus:border-white/30",
-                  "disabled:opacity-50 transition-colors"
+                  "w-full rounded-lg px-4 py-3",
+                  "text-[13px] text-text-primary placeholder:text-text-tertiary",
+                  "bg-surface-inset ring-1 ring-inset ring-white/[0.06]",
+                  "focus:outline-none focus:ring-status-safe/40",
+                  "disabled:opacity-50 transition-all duration-200"
                 )}
               />
             </div>
@@ -334,38 +327,45 @@ export default function LoginPage() {
               type="submit"
               disabled={status === "sending" || status === "sent"}
               className={cn(
-                "w-full rounded-lg py-2.5 text-[12px] font-medium",
-                "bg-white text-black",
-                "hover:opacity-88 transition-opacity",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
+                "w-full rounded-lg py-3 text-[12px] tracking-[0.06em] font-semibold",
+                "transition-all duration-200",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                status === "sent"
+                  ? "bg-status-safe/20 text-status-safe ring-1 ring-inset ring-status-safe/20"
+                  : "bg-status-safe text-text-on-status hover:brightness-110 shadow-glow-safe"
               )}
             >
               {status === "sending"
-                ? "Sending…"
+                ? "Sending..."
                 : status === "sent"
                   ? "Check your inbox"
                   : "Send magic link"}
             </button>
 
+            {/* Status messages */}
             {status === "sent" && (
-              <p className="text-[11px] text-emerald-400 pt-0.5">
-                Link sent to {email}. Open it on this device.
-              </p>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-status-safe/[0.08] ring-1 ring-inset ring-status-safe/10">
+                <span className="text-status-safe text-[14px] mt-[1px]">✓</span>
+                <p className="text-[11px] text-status-safe/80 leading-relaxed">
+                  Link sent to <span className="text-status-safe font-medium">{email}</span>.
+                  Open it on this device.
+                </p>
+              </div>
             )}
             {status === "error" && error && (
-              <p className="text-[11px] text-red-400 pt-0.5">{error}</p>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-status-critical/[0.08] ring-1 ring-inset ring-status-critical/10">
+                <span className="text-status-critical text-[14px] mt-[1px]">!</span>
+                <p className="text-[11px] text-status-critical/80 leading-relaxed">{error}</p>
+              </div>
             )}
           </form>
-
-          {/* Back */}
-          <button
-            onClick={closeForm}
-            className="mt-3 text-[11px] text-white/20 hover:text-white/45 transition-colors w-full text-center"
-          >
-            ← back
-          </button>
         </div>
-      )}
+
+        {/* Footer */}
+        <p className="text-center text-[10px] text-text-tertiary mt-6 tracking-wide">
+          AI-powered construction safety monitoring
+        </p>
+      </div>
     </main>
   );
 }
