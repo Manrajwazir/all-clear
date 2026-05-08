@@ -299,7 +299,7 @@ export default function LoginPage() {
               Operations console
             </h1>
             <p className="text-[11px] text-white/40 mt-1.5 leading-relaxed">
-              We'll send a one-time magic link — no password needed.
+              We&apos;ll send a one-time magic link — no password needed.
             </p>
           </div>
 

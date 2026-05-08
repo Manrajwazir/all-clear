@@ -119,6 +119,7 @@
    ============================================================= */
 html {
   background: var(--surface-base);
+  scroll-behavior: smooth;
 }
 
 body {
