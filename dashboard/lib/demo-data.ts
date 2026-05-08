@@ -5,6 +5,7 @@ const DEMO_CAMERA = {
   sites: { name: "Edmonton Tower" },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TYPES = [
   "no_hardhat",
   "no_safety_vest",
@@ -13,6 +14,7 @@ const TYPES = [
   "no_safety_vest",
 ] as const;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STATUSES = [
   "pending",
   "pending",

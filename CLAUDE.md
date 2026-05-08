@@ -29,7 +29,7 @@ violations (missing hard hats, vests, masks) in real time. When a violation is c
 | Phase 1 — Live Webcam Detection | ✅ Done | OpenCV + YOLO + bounding boxes |
 | Phase 2 — Violation Logger | ✅ Done | Debounce + S3 + Supabase verified end-to-end |
 | Phase 3 — SMS Alerts (Twilio) | ✅ Done | SMS fires within 5s of confirmed violation |
-| Phase 4 — Supervisor Dashboard | ✅ Done | Next.js 15 + Geist + shadcn + Supabase Realtime + pre-signed S3 URLs |
+| Phase 4 — Supervisor Dashboard | ✅ Done | Next.js 15 + Geist + shadcn + Supabase Realtime + pre-signed S3 URLs — deployed on Vercel |
 | Phase 5 — Polish for Demo Day | 🔜 Next | Landing page, RLS, demo mode polish, domain |
 
 ---
