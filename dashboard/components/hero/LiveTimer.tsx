@@ -9,14 +9,18 @@ export function LiveTimer({
 }: {
   lastViolationAt: string | null;
 }) {
-  const [tick, setTick] = useState(0);
+  // Start with "—" on both server and client initial render to avoid mismatch.
+  // After mount, compute the real value and tick every second.
+  const [value, setValue] = useState("—");
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    function update() {
+      setValue(lastViolationAt ? formatTimeSince(lastViolationAt) : "—");
+    }
+    update();
+    const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [lastViolationAt]);
 
-  void tick;
-  const value = lastViolationAt ? formatTimeSince(lastViolationAt) : "—";
   return <Metric label="Last violation" value={value} />;
 }
