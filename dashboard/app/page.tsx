@@ -69,15 +69,18 @@ export default async function LandingPage() {
 
       {/* ── Section 1: Hero ── */}
       <section className="relative flex flex-col items-center justify-center min-h-screen px-6 sm:px-12 text-center pt-20">
-        {/* Background video placeholder — faded, looping */}
+        {/* Background GIF — faded, loops automatically */}
         <div className="absolute inset-0 z-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-surface-base via-surface-base/90 to-surface-base z-10" />
-          {/* When you have the demo video, replace this div with:
-              <video autoPlay muted loop playsInline className="w-full h-full object-cover opacity-15">
-                <source src="/demo-detection.mp4" type="video/mp4" />
-              </video>
-          */}
-          <div className="w-full h-full bg-surface-inset opacity-50" />
+          {/* Gradient overlay keeps text readable over the GIF */}
+          <div className="absolute inset-0 bg-gradient-to-b from-surface-base/80 via-surface-base/70 to-surface-base z-10" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://www.compscience.com/wp-content/themes/compscience-2025/assets/images/safety-ai.gif"
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover"
+            style={{ opacity: 1 }}
+          />
         </div>
 
         <div className="relative z-20 max-w-4xl mx-auto">

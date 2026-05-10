@@ -24,12 +24,12 @@ violations (missing hard hats, vests, masks) in real time. When a violation is c
 
 | Phase | Status | Description |
 |---|---|---|
-| Phase 0 â€” Setup & Reading | âœ… Done | Repo, venv, model verified |
-| Phase 0.5 â€” Python Refresh | âœ… Done | venv, pyproject, logging, dotenv |
-| Phase 1 â€” Live Webcam Detection | âœ… Done | OpenCV + YOLO + bounding boxes |
-| Phase 2 â€” Violation Logger | âœ… Done | Debounce + S3 + Supabase verified end-to-end |
-| Phase 3 â€” SMS Alerts (Twilio) | âœ… Done | SMS fires within 5s of confirmed violation |
-| Phase 4 â€” Supervisor Dashboard | âœ… Done | Next.js 15 + Geist + shadcn + Supabase Realtime + pre-signed S3 URLs â€” deployed on Vercel |
+| Phase 0 â€” Setup & Reading | ✅ Done | Repo, venv, model verified |
+| Phase 0.5 â€” Python Refresh | ✅ Done | venv, pyproject, logging, dotenv |
+| Phase 1 â€” Live Webcam Detection | ✅ Done | OpenCV + YOLO + bounding boxes |
+| Phase 2 â€” Violation Logger | ✅ Done | Debounce + S3 + Supabase verified end-to-end |
+| Phase 3 â€” SMS Alerts (Twilio) | ✅ Done | SMS fires within 5s of confirmed violation |
+| Phase 4 â€” Supervisor Dashboard | ✅ Done | Next.js 15 + Geist + shadcn + Supabase Realtime + pre-signed S3 URLs â€” deployed on Vercel |
 | Phase 5 â€” Polish for Demo Day | ðŸ”œ Next | Landing page, RLS, demo mode polish, domain |
 
 ---
@@ -249,3 +249,4 @@ AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME (server-sid
 - **Dataset:** Roboflow Construction Site Safety (2,801 images, 10 classes)
 - **Metrics:** Precision 0.927, Recall 0.774, mAP@50 84.1%
 - **Violation classes:** NO-Hardhat, NO-Safety Vest, NO-Mask
+
