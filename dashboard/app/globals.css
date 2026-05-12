@@ -5,38 +5,38 @@
    ============================================================= */
 :root {
   /* === SURFACES (luminosity-based hierarchy, no borders) === */
-  --surface-base:     #0A0B0F;
-  --surface-card:     #13151B;
+  --surface-base: #0A0B0F;
+  --surface-card: #13151B;
   --surface-elevated: #1A1D26;
-  --surface-inset:    #08090C;
+  --surface-inset: #08090C;
 
   /* === TEXT === */
-  --text-primary:     #F4F5F7;
-  --text-secondary:   #9CA3AF;
-  --text-tertiary:    #5B6172;
-  --text-on-status:   #0A0B0F;
+  --text-primary: #F4F5F7;
+  --text-secondary: #9CA3AF;
+  --text-tertiary: #5B6172;
+  --text-on-status: #0A0B0F;
 
   /* === STATUS COLORS === */
-  --status-safe:      #00D9A3;
-  --status-warning:   #FFB020;
-  --status-critical:  #FF4747;
-  --status-resolved:  #3D8C7D;
-  --status-info:      #4AA3FF;
+  --status-safe: #00D9A3;
+  --status-warning: #FFB020;
+  --status-critical: #FF4747;
+  --status-resolved: #3D8C7D;
+  --status-info: #4AA3FF;
 
   /* === STATUS BACKGROUNDS (10% fills) === */
-  --status-safe-bg:     rgba(0, 217, 163, 0.1);
-  --status-warning-bg:  rgba(255, 176, 32, 0.1);
+  --status-safe-bg: rgba(0, 217, 163, 0.1);
+  --status-warning-bg: rgba(255, 176, 32, 0.1);
   --status-critical-bg: rgba(255, 71, 71, 0.1);
   --status-resolved-bg: rgba(61, 140, 125, 0.1);
-  --status-info-bg:     rgba(74, 163, 255, 0.1);
+  --status-info-bg: rgba(74, 163, 255, 0.1);
 
   /* === SPACING (8px base) === */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-6:  24px;
-  --space-8:  32px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
   --space-12: 48px;
   --space-16: 64px;
   --space-24: 96px;
@@ -48,70 +48,70 @@
   --radius-xl: 16px;
 
   /* === ELEVATION (shadows, not borders) === */
-  --shadow-card:          0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-elevated:      0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-modal:         0 24px 64px rgba(0, 0, 0, 0.7);
-  --shadow-glow-safe:     0 0 32px rgba(0, 217, 163, 0.15);
-  --shadow-glow-warning:  0 0 32px rgba(255, 176, 32, 0.2);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.7);
+  --shadow-glow-safe: 0 0 32px rgba(0, 217, 163, 0.15);
+  --shadow-glow-warning: 0 0 32px rgba(255, 176, 32, 0.2);
   --shadow-glow-critical: 0 0 48px rgba(255, 71, 71, 0.3);
 
   /* === MOTION === */
   --duration-instant: 100ms;
-  --duration-fast:    180ms;
-  --duration-normal:  280ms;
-  --duration-slow:    480ms;
-  --ease-out:         cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out:      cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 180ms;
+  --duration-normal: 280ms;
+  --duration-slow: 480ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 /* Tailwind v4 inline theme — exposes tokens as utilities */
 @theme inline {
-  --color-surface-base:     var(--surface-base);
-  --color-surface-card:     var(--surface-card);
+  --color-surface-base: var(--surface-base);
+  --color-surface-card: var(--surface-card);
   --color-surface-elevated: var(--surface-elevated);
-  --color-surface-inset:    var(--surface-inset);
+  --color-surface-inset: var(--surface-inset);
 
-  --color-text-primary:   var(--text-primary);
+  --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary:  var(--text-tertiary);
+  --color-text-tertiary: var(--text-tertiary);
   --color-text-on-status: var(--text-on-status);
 
-  --color-status-safe:     var(--status-safe);
-  --color-status-warning:  var(--status-warning);
+  --color-status-safe: var(--status-safe);
+  --color-status-warning: var(--status-warning);
   --color-status-critical: var(--status-critical);
   --color-status-resolved: var(--status-resolved);
-  --color-status-info:     var(--status-info);
+  --color-status-info: var(--status-info);
 
-  --color-status-safe-bg:     var(--status-safe-bg);
-  --color-status-warning-bg:  var(--status-warning-bg);
+  --color-status-safe-bg: var(--status-safe-bg);
+  --color-status-warning-bg: var(--status-warning-bg);
   --color-status-critical-bg: var(--status-critical-bg);
   --color-status-resolved-bg: var(--status-resolved-bg);
-  --color-status-info-bg:     var(--status-info-bg);
+  --color-status-info-bg: var(--status-info-bg);
 
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
 
-  --shadow-card:          var(--shadow-card);
-  --shadow-elevated:      var(--shadow-elevated);
-  --shadow-modal:         var(--shadow-modal);
-  --shadow-glow-safe:     var(--shadow-glow-safe);
-  --shadow-glow-warning:  var(--shadow-glow-warning);
+  --shadow-card: var(--shadow-card);
+  --shadow-elevated: var(--shadow-elevated);
+  --shadow-modal: var(--shadow-modal);
+  --shadow-glow-safe: var(--shadow-glow-safe);
+  --shadow-glow-warning: var(--shadow-glow-warning);
   --shadow-glow-critical: var(--shadow-glow-critical);
 
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Type scale per design doc §4 */
-  --text-status:  96px;
+  --text-status: 96px;
   --text-display: 56px;
-  --text-h1:      32px;
-  --text-h2:      24px;
-  --text-h3:      18px;
-  --text-body:    14px;
-  --text-meta:    12px;
-  --text-micro:   10px;
+  --text-h1: 32px;
+  --text-h2: 24px;
+  --text-h3: 18px;
+  --text-body: 14px;
+  --text-meta: 12px;
+  --text-micro: 10px;
 }
 
 /* =============================================================
@@ -141,23 +141,49 @@ body {
    Custom keyframes — design doc §9
    ============================================================= */
 @keyframes pulse-status {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.96; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.96;
+  }
 }
 
 @keyframes pulse-status-fast {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.92; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.92;
+  }
 }
 
 @keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes status-enter {
-  0%   { opacity: 0; transform: scale(0.95); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .animate-pulse-status {
@@ -184,13 +210,16 @@ body {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--surface-elevated);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
 }
