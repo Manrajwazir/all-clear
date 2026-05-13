@@ -107,6 +107,12 @@ def run_detection():
         )
         return
 
+    # Push camera to max FPS and disable internal buffer lag.
+    # CAP_PROP_BUFFERSIZE = 1 means OpenCV keeps only the latest frame,
+    # so we never process stale buffered frames when inference is slower than camera.
+    cap.set(cv2.CAP_PROP_FPS, 60)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
     print("\n" + "=" * 62)
     print("  All Clear — Live PPE Detection + Violation Logger")
     print(f"  Monitoring: {', '.join(sorted(VIOLATION_CLASSES))}")
@@ -124,7 +130,10 @@ def run_detection():
     fps_start = time.time()
 
     while True:
-        ret, frame = cap.read()
+        # Grab and discard any queued frames so we always get the freshest one.
+        # This matters when inference takes longer than the camera frame interval.
+        cap.grab()
+        ret, frame = cap.retrieve()
         if not ret or frame is None:
             logger.warning("Empty frame received — skipping.")
             continue
@@ -205,7 +214,8 @@ def run_detection():
 
         cv2.imshow("All Clear — Detection", annotated)
 
-        key = cv2.waitKey(30) & 0xFF
+        # waitKey(1) — minimal delay, GPU inference controls actual FPS now
+        key = cv2.waitKey(1) & 0xFF
         if key == ord('q') or key == 27:  # 27 = ESC
             logger.info("Quit signal received.")
             break
