@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
 export const metadata = {
-  title: "All Clear — AI-Powered Construction Safety Monitoring",
+  title: "All Clear — Computer Vision Construction Safety Monitoring",
   description:
     "Real-time PPE violation detection for construction sites. Camera to alert in under 5 seconds. Built for Alberta construction.",
 };
@@ -185,7 +185,7 @@ export default async function LandingPage() {
               description="Your existing IP cameras. No new hardware, no installation crew. Connect an RTSP stream and you're live."
             />
             <FeatureCard
-              title="AI detects in real time"
+              title="Detects in real time"
               description="YOLOv8 runs at 26 FPS on-site. Detects missing hard hats, vests, and masks. 93% precision."
             />
             <FeatureCard

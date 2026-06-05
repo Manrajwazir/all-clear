@@ -387,7 +387,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <p className="text-center text-[10px] text-text-tertiary mt-5 tracking-wide">
-            AI-powered construction safety monitoring
+            Computer vision safety compliance
           </p>
         </div>
       </div>
