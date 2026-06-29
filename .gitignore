@@ -6,3 +6,4 @@ detection/models/*.pt
 .vscode
 .idea
 .venv
+/docs

@@ -1,53 +1,57 @@
-# All Clear
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0b3d2e,50:10b981,100:0b3d2e&height=160&section=header&text=All%20Clear&fontSize=58&fontColor=ffffff&animation=fadeIn&fontAlignY=40" alt="All Clear"/>
+</p>
 
-PPE compliance monitoring for construction sites, powered by computer vision. Detects missing hard hats, vests, and masks in real time via YOLOv8s, logs violations to Supabase with S3 snapshots, and alerts supervisors via SMS.
+<p align="center">
+  <b>Computer vision that turns a worksite's existing cameras into automated safety compliance.</b>
+</p>
 
-## Quick Start
+<p align="center">
+  <img src="https://img.shields.io/badge/status-active%20development-10B981?style=flat-square" />
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/PyTorch%20%2F%20YOLO-EE4C2C?style=flat-square&logo=pytorch&logoColor=white" />
+  <img src="https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white" />
+  <img src="https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
+</p>
 
-### Detection Service (Python)
-```powershell
-.\venv\Scripts\Activate.ps1
-cd detection
-python src/main.py
+---
+
+## What it does
+
+All Clear connects to a facility's **existing IP cameras** and runs computer-vision detection at the edge to flag personal protective equipment (PPE) violations — a missing hard hat, a missing hi-vis vest — in real time. Each confirmed violation is logged with a timestamp and location, a supervisor is alerted, and the events build into a continuous, auditable safety record.
+
+The product isn't the detection on its own — it's the **automated, defensible compliance audit trail** that detection produces.
+
+## How it works
+
+```
+Existing IP cameras  →  Edge device (on-site GPU)  →  Cloud  →  Real-time alerts + dashboard
+                         · runs detection locally       · stores events
+                         · filters noise                · serves dashboard
+                         · sends only violation events  · triggers alerts
 ```
 
-### Dashboard (Next.js 15)
-```powershell
-cd dashboard
-npm install
-npm run dev    # http://localhost:3000
-```
+- **Edge-first.** Detection runs on-site. Only structured violation events leave the facility — not raw video. This keeps the system fast, bandwidth-light, resilient to connectivity drops, and privacy-respecting by design.
+- **Noise filtering.** Detections are debounced across frames and rate-limited per event type, so a single violation produces one meaningful alert — not a flood.
+- **Privacy by design.** No continuous footage leaves the site, no facial recognition. The system is built to output *what happened, where, and when* — not to surveil individuals.
 
-## Architecture
+## Tech stack
 
-```
-Edge Device (Jetson / laptop)        Cloud
-┌─────────────────────────┐     ┌──────────────────────┐
-│  OpenCV → YOLOv8s       │     │  Supabase (Postgres)  │
-│  Debounce + Cooldown    │────▶│  AWS S3 (ca-central-1)│
-│  Local retry queue      │     │  Twilio SMS           │
-└─────────────────────────┘     └──────────┬───────────┘
-                                           │ Realtime
-                                    ┌──────▼──────────┐
-                                    │  Next.js 15     │
-                                    │  Dashboard      │
-                                    │  (AWS Amplify)  │
-                                    └─────────────────┘
-```
+| Layer            | Tools                                              |
+| ---------------- | -------------------------------------------------- |
+| Detection        | Python, PyTorch, YOLO (Ultralytics)                |
+| Edge             | On-site GPU inference                              |
+| Cloud / backend  | AWS (Canadian region), serverless event processing |
+| Data + dashboard | Next.js, real-time data layer                      |
+| Alerts           | SMS / messaging integration                        |
 
-## Documentation
+## Status
 
-| File | Description |
-|------|-------------|
-| `pilot-build-pathway.md` | Production-ready implementation plan (7 phases) |
-| `CLAUDE.md` | LLM agent context file |
-| `docs/all_clear_architecture.md` | Full system architecture reference |
-| `docs/dashboard-design.md` | Dashboard design system spec |
-| `docs/all_clear_pre_pilot_acceptance_checklist.md` | Pre-pilot verification checklist |
-| `docs/schema.sql` | Current database schema (v1) |
-| `docs/NOTES.md` | Build log, gotchas, and interview prep |
-| `docs/PROOF.md` | Market and technology validation evidence |
+All Clear is an **incorporated Alberta company** currently in active research commercialization, advancing the system from a working prototype toward validated, real-world deployment through an applied-research program.
 
-## License
+> This repository contains the application code. It is under active development and evolving quickly.
 
-AGPL-3.0 (Ultralytics framework). Commercial license pending.
+## About
+
+Built by [Manraj Singh Wazir](https://www.linkedin.com/in/manraj-wazir/) and team.
+For more about the company: [All Clear](REPLACE_WITH_ALL_CLEAR_LINK)
