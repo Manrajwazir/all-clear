@@ -24,7 +24,7 @@ export function DetailPanel({
   onResolved,
 }: DetailPanelProps) {
   const [busy, setBusy] = useState(false);
-  const signedUrl = useSignedUrl(violation?.image_url ?? null);
+  const signedUrl = useSignedUrl(violation?.snapshot_s3_key ?? null);
 
   // Defer locale-dependent formatting to client to avoid hydration mismatch
   const [mounted, setMounted] = useState(false);

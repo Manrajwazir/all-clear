@@ -23,7 +23,7 @@ export function ViolationCard({ violation, onSelect }: ViolationCardProps) {
   const isActive =
     violation.resolution_status === "pending" && ageMs < 5 * 60 * 1000;
 
-  const signedUrl = useSignedUrl(violation.image_url);
+  const signedUrl = useSignedUrl(violation.snapshot_s3_key);
 
   // toLocaleTimeString is locale-dependent → only compute on client
   const time = mounted

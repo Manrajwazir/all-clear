@@ -56,12 +56,17 @@ function makeOne(
 ): ViolationWithCamera {
   return {
     id: `demo-${ts}-${Math.random().toString(36).slice(2, 8)}`,
+    organization_id: "aaaaaaaa-0000-0000-0000-000000000001",
+    site_id: "00000000-0000-0000-0000-000000000001",
     camera_id: "00000000-0000-0000-0000-000000000001",
+    device_id: null,
     violation_type: type,
     confidence: conf,
-    image_url: null,
+    snapshot_s3_key: null,
     detected_at: new Date(ts).toISOString(),
+    created_at: new Date(ts).toISOString(),
     resolved_at: status !== "pending" ? new Date(ts + 60_000).toISOString() : null,
+    resolved_by: null,
     resolution_status: status,
     notes: null,
     cameras: DEMO_CAMERA,
