@@ -170,18 +170,18 @@ def run_detection():
             if tracker.should_alert(v_type):
                 logger.info(f"ALERT      type={v_type} — debounce passed, firing pipeline")
 
-                image_url = None
+                snapshot_key = None
 
                 if STORAGE_ENABLED:
                     try:
                         # Encode the current frame as JPEG bytes
                         success, buffer = cv2.imencode(".jpg", frame)
                         if success:
-                            image_url = upload_snapshot(
+                            snapshot_key = upload_snapshot(
                                 frame_bytes=buffer.tobytes(),
                                 camera_id=CAMERA_ID
                             )
-                            logger.info(f"S3 upload OK → {image_url}")
+                            logger.info(f"S3 upload OK → {snapshot_key}")
                         else:
                             logger.warning("JPEG encode failed — skipping S3 upload")
                     except Exception as e:
@@ -192,7 +192,7 @@ def run_detection():
                             camera_id=CAMERA_ID,
                             violation_type=v_type,
                             confidence=conf,
-                            image_url=image_url
+                            snapshot_s3_key=snapshot_key
                         )
                         logger.info(f"Supabase log OK — type={v_type}")
                     except Exception as e:
@@ -203,7 +203,7 @@ def run_detection():
                         send_violation_sms(
                             violation_type=v_type,
                             camera_name="Webcam Dev Camera",
-                            image_url=image_url or "no-image"
+                            snapshot_key=snapshot_key or "no-image"
                         )
                 else:
                     # No storage configured — just print

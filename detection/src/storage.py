@@ -11,8 +11,8 @@ IMPORTANT:
   - The dashboard uses SUPABASE_ANON_KEY (respects RLS)
   - Never use the service role key in client/frontend code
 
-Interview prep:
-  - "What happens if S3 is down?" → Violation logged with null image_url.
+Notes:
+  - "What happens if S3 is down?" → Violation logged with null snapshot_s3_key.
     Production needs queue + retry. Known gap.
   - "Why service role here?" → Backend is trusted. Service role lets us
     insert without RLS policy complexity during MVP.
@@ -56,7 +56,8 @@ def get_s3():
 def upload_snapshot(frame_bytes: bytes, camera_id: str) -> str:
     """
     Upload a violation snapshot to S3.
-    Returns the S3 URL for the uploaded image.
+    Returns the S3 key (not the full URL — the dashboard's signed-URL
+    route reconstructs the full URL with temporary auth).
 
     frame_bytes: JPEG-encoded image bytes (from cv2.imencode)
     camera_id: UUID of the camera
@@ -65,29 +66,29 @@ def upload_snapshot(frame_bytes: bytes, camera_id: str) -> str:
     key = f"violations/{camera_id}/{datetime.utcnow().isoformat()}.jpg"
     s3.put_object(
         ACL='private',
-ServerSideEncryption='AES256',
+        ServerSideEncryption='AES256',
         Bucket=os.environ["S3_BUCKET_NAME"],
         Key=key,
         Body=frame_bytes,
         ContentType="image/jpeg"
     )
-    return f"https://{os.environ['S3_BUCKET_NAME']}.s3.amazonaws.com/{key}"
+    return key
 
 
-def log_violation(camera_id: str, violation_type: str, confidence: float, image_url: str = None):
+def log_violation(camera_id: str, violation_type: str, confidence: float, snapshot_s3_key: str = None):
     """
     Insert a violation record into Supabase.
 
     camera_id: UUID of the camera
     violation_type: e.g. 'no_helmet', 'no_vest'
     confidence: model confidence score (0-1)
-    image_url: S3 URL of the snapshot (optional)
+    snapshot_s3_key: S3 key of the snapshot (optional, None in events-only mode)
     """
     supabase = get_supabase()
     supabase.table("violations").insert({
         "camera_id": camera_id,
         "violation_type": violation_type,
         "confidence": confidence,
-        "image_url": image_url,
+        "snapshot_s3_key": snapshot_s3_key,
         "resolution_status": "pending"
     }).execute()

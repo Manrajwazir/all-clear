@@ -69,7 +69,7 @@ try:
         "camera_id":         DUMMY_CAMERA_ID,
         "violation_type":    "no_helmet",
         "confidence":        0.99,
-        "image_url":         "https://test.example.com/test.jpg",
+        "snapshot_s3_key":    "violations/00000000-0000-0000-0000-000000000001/test.jpg",
         "resolution_status": "pending",
     }
 

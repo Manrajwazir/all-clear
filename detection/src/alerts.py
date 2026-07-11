@@ -37,7 +37,7 @@ def get_twilio_client():
     )
 
 
-def send_violation_sms(violation_type: str, camera_name: str, image_url: str) -> str:
+def send_violation_sms(violation_type: str, camera_name: str, snapshot_key: str) -> str:
     """
     Send an SMS alert for a detected violation.
     Returns the Twilio message SID.
@@ -49,7 +49,7 @@ def send_violation_sms(violation_type: str, camera_name: str, image_url: str) ->
         client = get_twilio_client()
         body = (
             f"[All Clear] {violation_type.replace('_', ' ').upper()} "
-            f"at {camera_name} — view: {image_url[:50]}..."
+            f"at {camera_name} — ref: {snapshot_key[:50]}..."
         )
         message = client.messages.create(
             body=body,
