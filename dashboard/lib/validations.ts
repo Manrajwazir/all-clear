@@ -23,7 +23,7 @@ export const signedUrlSchema = z.object({
     .min(1, "Key is required")
     .max(500, "Key too long")
     .startsWith("violations/", "Key must start with violations/")
-    .regex(/^[a-zA-Z0-9\-_/.]+$/, "Invalid characters in key")
+    .regex(/^[a-zA-Z0-9\-_/.:]+$/, "Invalid characters in key")
     .refine((key) => !key.includes(".."), "Path traversal not allowed"),
 });
 
