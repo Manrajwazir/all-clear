@@ -53,5 +53,5 @@ All Clear is an **incorporated Alberta company** currently in active research co
 
 ## About
 
-Built by [Manraj Singh Wazir](https://www.linkedin.com/in/manraj-wazir/) and team.
-For more about the company: [All Clear](REPLACE_WITH_ALL_CLEAR_LINK)
+Built by [Manraj Singh Wazir](https://www.linkedin.com/in/manraj-wazir/) and [Xavion Dean](https://www.linkedin.com/in/xavion-dean/).
+For more about the company: [All Clear](https://www.linkedin.com/company/all-clear-inc)
