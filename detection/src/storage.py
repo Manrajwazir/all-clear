@@ -26,14 +26,20 @@ load_dotenv()
 
 
 # ---------- Supabase ----------
+_supabase_client = None
+_s3_client = None
 
+"""Create and return a Supabase client using the service role key."""
 def get_supabase():
-    """Create and return a Supabase client using the service role key."""
-    from supabase import create_client
-    return create_client(
-        os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    )
+    global _supabase_client
+    # Added some error handling get_supabase() created a brand new client on every call which can break under real load
+    if _supabase_client is None:
+        from supabase import create_client
+        _supabase_client = create_client(
+            os.environ["SUPABASE_URL"],
+            os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+        )
+    return _supabase_client
 
 
 # Create one client per process, not per call (avoids connection pool exhaustion)
@@ -42,12 +48,13 @@ def get_supabase():
 
 
 # ---------- AWS S3 ----------
-
+"""Create and return a boto3 S3 client."""
 def get_s3():
-    """Create and return a boto3 S3 client."""
-    import boto3
-    return boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ca-central-1"))
-
+    global _s3_client
+    if _s3_client is None:
+        import boto3
+        _s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ca-central-1"))
+    return _s3_client
 
 # Uncomment when AWS is configured:
 # s3 = get_s3()
@@ -70,7 +77,8 @@ def upload_snapshot(frame_bytes: bytes, camera_id: str) -> str:
         Bucket=os.environ["S3_BUCKET_NAME"],
         Key=key,
         Body=frame_bytes,
-        ContentType="image/jpeg"
+        ContentType="image/jpeg",
+        ACL="private" # S3 bucket is private; we generate signed URLs for access
     )
     return key
 

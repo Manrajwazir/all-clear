@@ -65,17 +65,8 @@ export default async function LandingPage() {
       <section className="relative min-h-screen flex items-center pt-24 pb-32 overflow-hidden">
         {/* Mesh gradient — teal blob top-left, blue bottom-right like Notio's amber */}
         <div className="absolute inset-0 z-0">
-          {/* GIF background — faded behind everything */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://www.compscience.com/wp-content/themes/compscience-2025/assets/images/safety-ai.gif"
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ opacity: 0.7 }}
-          />
           {/* Dark overlay so text reads clean */}
-          <div className="absolute inset-0 bg-surface-base/70" />
+          <div className="absolute inset-0 bg-surface-base" />
           {/* Mesh gradient blobs on top */}
           <div
             className="absolute -top-[30%] -left-[20%] w-[80%] h-[80%] rounded-full"
@@ -365,7 +356,7 @@ export default async function LandingPage() {
         </div>
         <div className="flex items-center justify-center gap-8 text-[13px] text-text-secondary mb-8">
           <a href="mailto:manrajwazir@gmail.com" className="hover:text-text-primary transition-colors">Contact</a>
-          <a href="https://github.com/Manrajwazir/SiteIQ" target="_blank" rel="noopener noreferrer" className="hover:text-text-primary transition-colors">GitHub</a>
+          <a href="https://github.com/Manrajwazir/all-clear" target="_blank" rel="noopener noreferrer" className="hover:text-text-primary transition-colors">GitHub</a>
         </div>
         <p className="text-[12px] text-text-tertiary">
           &#169; 2026 All Clear. All rights reserved.
