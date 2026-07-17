@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import PilotForm from "@/components/landing/PilotForm";
 
 export const metadata = {
   title: "All Clear — Computer Vision Construction Safety Monitoring",
@@ -92,7 +93,7 @@ export default async function LandingPage() {
             </h1>
             <p className="mt-6 text-[16px] sm:text-[18px] text-text-secondary leading-relaxed max-w-lg">
               Record, detect, and alert on PPE violations across your construction
-              site — all in real-time. Turn every camera into a safety supervisor.
+              site — all in real-time. Turn any camera into an automated safety sensor.
             </p>
             <div className="mt-10">
               <a
@@ -172,8 +173,8 @@ export default async function LandingPage() {
 
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-5">
             <FeatureCard
-              title="Plug in a camera"
-              description="Your existing IP cameras. No new hardware, no installation crew. Connect an RTSP stream and you're live."
+              title="Connect your cameras"
+              description="Your existing IP cameras or sensors. No new hardware, no installation crew. Connect an RTSP stream and you're live."
             />
             <FeatureCard
               title="Detects in real time"
@@ -181,7 +182,7 @@ export default async function LandingPage() {
             />
             <FeatureCard
               title="Supervisor gets alerted"
-              description="SMS in under 5 seconds. Every violation logged with photo, timestamp, and confidence score."
+              description="SMS in under 5 seconds. Every violation logged with snapshot, timestamp, and confidence score."
             />
           </div>
         </div>
@@ -328,24 +329,7 @@ export default async function LandingPage() {
             We&apos;ll set up a 30-minute live demo using your cameras. No commitment. No credit card.
           </p>
 
-          <form
-            action="mailto:manrajwazir@gmail.com"
-            method="GET"
-            className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-lg mx-auto"
-          >
-            <input name="subject" placeholder="Your name" className="w-full px-4 py-3 bg-surface-card/80 text-[13px] text-text-primary placeholder:text-text-tertiary rounded-xl border border-white/[0.06] focus:border-white/[0.15] focus:outline-none transition-colors" />
-            <input name="cc" type="email" placeholder="you@company.com" className="w-full px-4 py-3 bg-surface-card/80 text-[13px] text-text-primary placeholder:text-text-tertiary rounded-xl border border-white/[0.06] focus:border-white/[0.15] focus:outline-none transition-colors" />
-            <input name="company" placeholder="Company name" className="w-full px-4 py-3 bg-surface-card/80 text-[13px] text-text-primary placeholder:text-text-tertiary rounded-xl border border-white/[0.06] focus:border-white/[0.15] focus:outline-none transition-colors" />
-            <input name="sites" placeholder="Number of sites" className="w-full px-4 py-3 bg-surface-card/80 text-[13px] text-text-primary placeholder:text-text-tertiary rounded-xl border border-white/[0.06] focus:border-white/[0.15] focus:outline-none transition-colors" />
-            <div className="sm:col-span-2">
-              <button
-                type="submit"
-                className="w-full py-3 text-[14px] font-medium rounded-full border border-white/20 hover:bg-white/[0.06] transition-all"
-              >
-                Request a pilot
-              </button>
-            </div>
-          </form>
+          <PilotForm />
         </div>
       </section>
 
