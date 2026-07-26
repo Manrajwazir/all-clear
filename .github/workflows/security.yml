@@ -1,0 +1,60 @@
+# Security CI — Blocks PRs with vulnerable dependencies or leaked secrets
+# Phase 2, Step 2.8
+#
+# Runs three checks on every PR:
+#   1. npm audit    — catches known CVEs in dashboard dependencies
+#   2. pip-audit    — catches known CVEs in detection dependencies
+#   3. gitleaks     — scans full git history for leaked secrets/keys
+#
+# Zero critical/high findings policy: if any check fails, the PR cannot merge.
+
+name: Security Audit
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [main, staging]
+
+jobs:
+  npm-audit:
+    name: npm audit (dashboard)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - run: npm audit --audit-level=high
+
+  pip-audit:
+    name: pip-audit (detection)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: detection
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pip-audit
+      - run: pip install -e .
+      - run: pip-audit --strict --desc
+
+  gitleaks:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for thorough scanning
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

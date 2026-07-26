@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { checkRateLimit, getClientIp, PILOT_FORM_LIMIT } from "@/lib/rate-limit";
 
 /**
  * POST /api/pilot-request
@@ -21,6 +22,16 @@ const pilotRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // ── Rate limit (Phase 2.9): 3 requests/minute per IP ──────────
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`pilot:${ip}`, PILOT_FORM_LIMIT);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+      );
+    }
+
     const body = await request.json();
 
     // Validate input

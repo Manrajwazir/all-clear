@@ -1,0 +1,41 @@
+# Dependabot — Automated dependency security updates
+# Phase 2, Step 2.8
+#
+# Monitors both npm (dashboard) and pip (detection) for known CVEs.
+# Opens PRs automatically when vulnerabilities are found.
+# Docs: https://docs.github.com/en/code-security/dependabot
+
+version: 2
+
+updates:
+  # --- Dashboard (Next.js / npm) ---
+  - package-ecosystem: "npm"
+    directory: "/dashboard"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+
+  # --- Detection (Python / pip) ---
+  - package-ecosystem: "pip"
+    directory: "/detection"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+
+  # --- GitHub Actions ---
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"

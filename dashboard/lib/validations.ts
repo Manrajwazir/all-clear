@@ -41,6 +41,7 @@ export const violationSubmitSchema = z.object({
   detected_at: z.string().datetime(),
   camera_id: z.string().uuid(),
   snapshot_s3_key: z.string().max(500).optional(),
+  idempotency_key: z.string().uuid("Idempotency key must be a UUID").optional(),
 });
 
 // ─── Device Provisioning (Phase 3) ──────────────────────────────────

@@ -74,6 +74,7 @@ export interface Violation {
   violation_type: string;
   confidence: number;
   snapshot_s3_key: string | null;
+  idempotency_key: string | null;
   detected_at: string;
   created_at: string;
   resolved_at: string | null;

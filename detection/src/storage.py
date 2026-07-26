@@ -72,13 +72,12 @@ def upload_snapshot(frame_bytes: bytes, camera_id: str) -> str:
     s3 = get_s3()
     key = f"violations/{camera_id}/{datetime.utcnow().isoformat()}.jpg"
     s3.put_object(
-        ACL='private',
+        ACL='private', # S3 bucket is private; we generate signed URLs for access
         ServerSideEncryption='AES256',
         Bucket=os.environ["S3_BUCKET_NAME"],
         Key=key,
         Body=frame_bytes,
-        ContentType="image/jpeg",
-        ACL="private" # S3 bucket is private; we generate signed URLs for access
+        ContentType="image/jpeg"
     )
     return key
 

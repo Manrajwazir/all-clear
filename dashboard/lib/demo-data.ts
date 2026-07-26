@@ -63,6 +63,7 @@ function makeOne(
     violation_type: type,
     confidence: conf,
     snapshot_s3_key: null,
+    idempotency_key: null,
     detected_at: new Date(ts).toISOString(),
     created_at: new Date(ts).toISOString(),
     resolved_at: status !== "pending" ? new Date(ts + 60_000).toISOString() : null,
