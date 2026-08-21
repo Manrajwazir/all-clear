@@ -61,7 +61,7 @@ CAMERA_ID = "00000000-0000-0000-0000-000000000001"
 STORAGE_ENABLED = all([
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
-    os.getenv("AWS_ACCESS_KEY_ID"),
+    os.getenv("S3_ACCESS_KEY_ID"),
     os.getenv("S3_BUCKET_NAME"),
 ])
 

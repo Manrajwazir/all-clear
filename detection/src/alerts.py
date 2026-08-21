@@ -69,7 +69,7 @@ def send_violation_sms(violation_type: str, camera_name: str, snapshot_key: str)
 def get_ses_client():
     """Create and return a boto3 SES client."""
     import boto3
-    return boto3.client("ses", region_name=os.environ.get("AWS_REGION", "ca-central-1"))
+    return boto3.client("ses", region_name=os.environ.get("S3_REGION", "ca-central-1"))
 
 
 def send_daily_digest(to_email: str, html_body: str):
