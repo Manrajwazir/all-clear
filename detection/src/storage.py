@@ -53,7 +53,7 @@ def get_s3():
     global _s3_client
     if _s3_client is None:
         import boto3
-        _s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ca-central-1"))
+        _s3_client = boto3.client("s3", region_name=os.environ.get("S3_REGION", "ca-central-1"))
     return _s3_client
 
 # Uncomment when AWS is configured:
