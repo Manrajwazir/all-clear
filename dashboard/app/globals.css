@@ -1,225 +1,133 @@
 @import "tailwindcss";
 
 /* =============================================================
-   All Clear Design Tokens — see docs/dashboard-design.md §3
+   All Clear — marketing site tokens
+   Cream / navy palette, ported from the approved design.
    ============================================================= */
 :root {
-  /* === SURFACES (luminosity-based hierarchy, no borders) === */
-  --surface-base: #0A0B0F;
-  --surface-card: #13151B;
-  --surface-elevated: #1A1D26;
-  --surface-inset: #08090C;
+  /* Surfaces */
+  --cream: #eae0cf;
+  --cream-wash: rgba(255, 255, 255, 0.34);
 
-  /* === TEXT === */
-  --text-primary: #F4F5F7;
-  --text-secondary: #9CA3AF;
-  --text-tertiary: #5B6172;
-  --text-on-status: #0A0B0F;
+  /* Ink */
+  --navy: #111844;
+  --slate: #4b5694;
+  --slate-light: #7288ae;
 
-  /* === STATUS COLORS === */
-  --status-safe: #00D9A3;
-  --status-warning: #FFB020;
-  --status-critical: #FF4747;
-  --status-resolved: #3D8C7D;
-  --status-info: #4AA3FF;
+  /* Hairlines on cream */
+  --rule: rgba(17, 24, 68, 0.18);
+  --rule-strong: rgba(17, 24, 68, 0.28);
+  --rule-soft: rgba(17, 24, 68, 0.14);
+  --rule-field: rgba(17, 24, 68, 0.3);
 
-  /* === STATUS BACKGROUNDS (10% fills) === */
-  --status-safe-bg: rgba(0, 217, 163, 0.1);
-  --status-warning-bg: rgba(255, 176, 32, 0.1);
-  --status-critical-bg: rgba(255, 71, 71, 0.1);
-  --status-resolved-bg: rgba(61, 140, 125, 0.1);
-  --status-info-bg: rgba(74, 163, 255, 0.1);
-
-  /* === SPACING (8px base) === */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
-  --space-16: 64px;
-  --space-24: 96px;
-
-  /* === RADIUS === */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-
-  /* === ELEVATION (shadows, not borders) === */
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.7);
-  --shadow-glow-safe: 0 0 32px rgba(0, 217, 163, 0.15);
-  --shadow-glow-warning: 0 0 32px rgba(255, 176, 32, 0.2);
-  --shadow-glow-critical: 0 0 48px rgba(255, 71, 71, 0.3);
-
-  /* === MOTION === */
-  --duration-instant: 100ms;
-  --duration-fast: 180ms;
-  --duration-normal: 280ms;
-  --duration-slow: 480ms;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Hairlines on navy */
+  --rule-inverse: rgba(234, 224, 207, 0.28);
+  --rule-inverse-soft: rgba(234, 224, 207, 0.22);
+  --rule-inverse-faint: rgba(234, 224, 207, 0.18);
 }
 
-/* Tailwind v4 inline theme — exposes tokens as utilities */
 @theme inline {
-  --color-surface-base: var(--surface-base);
-  --color-surface-card: var(--surface-card);
-  --color-surface-elevated: var(--surface-elevated);
-  --color-surface-inset: var(--surface-inset);
+  --color-cream: var(--cream);
+  --color-cream-wash: var(--cream-wash);
+  --color-navy: var(--navy);
+  --color-slate: var(--slate);
+  --color-slate-light: var(--slate-light);
 
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-  --color-text-on-status: var(--text-on-status);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-rule-soft: var(--rule-soft);
+  --color-rule-field: var(--rule-field);
+  --color-rule-inverse: var(--rule-inverse);
+  --color-rule-inverse-soft: var(--rule-inverse-soft);
+  --color-rule-inverse-faint: var(--rule-inverse-faint);
 
-  --color-status-safe: var(--status-safe);
-  --color-status-warning: var(--status-warning);
-  --color-status-critical: var(--status-critical);
-  --color-status-resolved: var(--status-resolved);
-  --color-status-info: var(--status-info);
-
-  --color-status-safe-bg: var(--status-safe-bg);
-  --color-status-warning-bg: var(--status-warning-bg);
-  --color-status-critical-bg: var(--status-critical-bg);
-  --color-status-resolved-bg: var(--status-resolved-bg);
-  --color-status-info-bg: var(--status-info-bg);
-
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
-
-  --shadow-card: var(--shadow-card);
-  --shadow-elevated: var(--shadow-elevated);
-  --shadow-modal: var(--shadow-modal);
-  --shadow-glow-safe: var(--shadow-glow-safe);
-  --shadow-glow-warning: var(--shadow-glow-warning);
-  --shadow-glow-critical: var(--shadow-glow-critical);
-
-  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-
-  /* Type scale per design doc §4 */
-  --text-status: 96px;
-  --text-display: 56px;
-  --text-h1: 32px;
-  --text-h2: 24px;
-  --text-h3: 18px;
-  --text-body: 14px;
-  --text-meta: 12px;
-  --text-micro: 10px;
+  --font-sans: var(--font-roboto), Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-roboto-mono), ui-monospace, monospace;
 }
 
 /* =============================================================
-   Base styles
+   Base
    ============================================================= */
 html {
-  background: var(--surface-base);
+  background: var(--cream);
   scroll-behavior: smooth;
+  /* Header is 68px on mobile, 76px from sm up — keep anchor targets clear of it */
+  scroll-padding-top: 88px;
 }
 
 body {
-  background: transparent;
-  color: var(--text-primary);
-  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  background: var(--cream);
+  color: var(--navy);
+  font-family: var(--font-roboto), Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "ss01", "cv11";
+  text-wrap: pretty;
+  /* Stops iOS Safari inflating type in the rotated-to-landscape case */
+  -webkit-text-size-adjust: 100%;
 }
 
-/* All numerics are tabular by default in mono context */
-.font-mono,
-.tabular {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-/* =============================================================
-   Custom keyframes — design doc §9
-   ============================================================= */
-@keyframes pulse-status {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.96;
-  }
-}
-
-@keyframes pulse-status-fast {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.92;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-@keyframes status-enter {
-  0% {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-pulse-status {
-  animation: pulse-status 2.4s ease-in-out infinite;
-}
-
-.animate-pulse-status-fast {
-  animation: pulse-status-fast 1.6s ease-in-out infinite;
-}
-
-.animate-status-enter {
-  animation: status-enter 480ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* =============================================================
-   Selection + scrollbars (subtle, matches surface system)
-   ============================================================= */
 ::selection {
-  background: var(--status-info-bg);
-  color: var(--text-primary);
+  background: var(--navy);
+  color: var(--cream);
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Visible keyboard focus everywhere — the default ring is invisible on cream */
+:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 3px;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+/* =============================================================
+   Utilities
+   ============================================================= */
+
+/* The uppercase mono label used for section numbers, eyebrows, field labels */
+.label-mono {
+  font-family: var(--font-roboto-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--surface-elevated);
-  border-radius: 4px;
+/* =============================================================
+   Motion — the two pipeline indicators from the design.
+   Both are decorative; both stop under reduced-motion.
+   ============================================================= */
+@keyframes ac-run {
+  0% { left: 0%; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+@keyframes ac-drop {
+  0% { top: 0%; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.animate-ac-run {
+  animation: ac-run 4.6s linear infinite;
+}
+
+.animate-ac-drop {
+  animation: ac-drop 5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-ac-run,
+  .animate-ac-drop {
+    animation: none;
+    opacity: 0;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }
