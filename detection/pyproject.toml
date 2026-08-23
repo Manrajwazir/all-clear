@@ -11,6 +11,7 @@ dependencies = [
     "supabase",             # Supabase client (DB + storage)
     "boto3",                # AWS S3 client
     "twilio",               # SMS alerts
+    "posthog>=7.29.0",     # Product analytics
 ]
 
 [project.optional-dependencies]

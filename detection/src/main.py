@@ -37,8 +37,11 @@ from detector import PPEDetector, VIOLATION_CLASSES
 from debounce import ViolationTracker
 from storage import upload_snapshot, log_violation
 from alerts import send_violation_sms
+from posthog_client import initialize_posthog
 
 load_dotenv()
+
+posthog_client = initialize_posthog()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -86,6 +89,12 @@ else:
     logger.info("Twilio enabled: SMS alerts will fire on confirmed violations.")
 
 
+def capture_event(event: str, properties: dict) -> None:
+    """Capture a personless service event when PostHog is configured."""
+    if posthog_client:
+        posthog_client.capture(event=event, properties=properties)
+
+
 def run_detection():
     logger.info("Loading PPE model...")
     detector = PPEDetector(model_path=MODEL_PATH)
@@ -105,6 +114,9 @@ def run_detection():
             "Windows fix: Settings → Privacy & Security → Camera → "
             "Allow desktop apps to access your camera."
         )
+        capture_event("camera_open_failed", {
+            "camera_input_type": "device_index",
+        })
         return
 
     # Push camera to max FPS and disable internal buffer lag.
@@ -112,6 +124,14 @@ def run_detection():
     # so we never process stale buffered frames when inference is slower than camera.
     cap.set(cv2.CAP_PROP_FPS, 60)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+    capture_event("detection_started", {
+        "confidence_threshold": CONFIDENCE,
+        "debounce_frames": DEBOUNCE_F,
+        "cooldown_seconds": COOLDOWN_S,
+        "storage_enabled": STORAGE_ENABLED,
+        "sms_enabled": TWILIO_ENABLED,
+    })
 
     print("\n" + "=" * 62)
     print("  All Clear — Live PPE Detection + Violation Logger")
@@ -169,6 +189,12 @@ def run_detection():
 
             if tracker.should_alert(v_type):
                 logger.info(f"ALERT      type={v_type} — debounce passed, firing pipeline")
+                capture_event("violation_confirmed", {
+                    "violation_type": v_type,
+                    "confidence": conf,
+                    "storage_enabled": STORAGE_ENABLED,
+                    "sms_enabled": TWILIO_ENABLED,
+                })
 
                 image_url = None
 
@@ -182,6 +208,9 @@ def run_detection():
                                 camera_id=CAMERA_ID
                             )
                             logger.info(f"S3 upload OK → {image_url}")
+                            capture_event("violation_snapshot_uploaded", {
+                                "violation_type": v_type,
+                            })
                         else:
                             logger.warning("JPEG encode failed — skipping S3 upload")
                     except Exception as e:
@@ -195,16 +224,26 @@ def run_detection():
                             image_url=image_url
                         )
                         logger.info(f"Supabase log OK — type={v_type}")
+                        capture_event("violation_logged", {
+                            "violation_type": v_type,
+                            "confidence": conf,
+                            "has_snapshot": image_url is not None,
+                        })
                     except Exception as e:
                         logger.error(f"Supabase log failed: {e}")
 
                     # Phase 3 — SMS alert
                     if TWILIO_ENABLED:
-                        send_violation_sms(
+                        sms_sid = send_violation_sms(
                             violation_type=v_type,
                             camera_name="Webcam Dev Camera",
                             image_url=image_url or "no-image"
                         )
+                        if sms_sid:
+                            capture_event("violation_sms_sent", {
+                                "violation_type": v_type,
+                                "has_snapshot": image_url is not None,
+                            })
                 else:
                     # No storage configured — just print
                     logger.info(
@@ -222,8 +261,13 @@ def run_detection():
         elif key == ord('s'):
             snapshot_path = Path("../docs/phase1_snapshot.jpg")
             snapshot_path.parent.mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(str(snapshot_path), annotated)
-            logger.info(f"Snapshot saved → {snapshot_path.resolve()}")
+            if cv2.imwrite(str(snapshot_path), annotated):
+                logger.info(f"Snapshot saved → {snapshot_path.resolve()}")
+                capture_event("snapshot_saved", {
+                    "active_violation_count": num_violations,
+                })
+            else:
+                logger.error(f"Snapshot save failed → {snapshot_path.resolve()}")
 
     cap.release()
     cv2.destroyAllWindows()
@@ -231,4 +275,8 @@ def run_detection():
 
 
 if __name__ == "__main__":
-    run_detection()
+    try:
+        run_detection()
+    finally:
+        if posthog_client:
+            posthog_client.shutdown()
