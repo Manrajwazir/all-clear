@@ -1,5 +1,5 @@
 {
-  "name": "allclear-dashboard",
+  "name": "allclear-site",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,21 +10,11 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1041.0",
-    "@aws-sdk/s3-request-presigner": "^3.1041.0",
-    "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.45.4",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.460.0",
-    "motion": "^12.0.0",
     "next": "15.5.18",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^2.13.0",
-    "tailwind-merge": "^2.5.4",
-    "zod": "^4.4.3"
+    "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

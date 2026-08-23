@@ -1,57 +1,66 @@
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0b3d2e,50:10b981,100:0b3d2e&height=160&section=header&text=All%20Clear&fontSize=58&fontColor=ffffff&animation=fadeIn&fontAlignY=40" alt="All Clear"/>
-</p>
+# All Clear — marketing site
 
-<p align="center">
-  <b>Computer vision that turns a worksite's existing cameras into automated safety compliance.</b>
-</p>
+The public website for [allclearsafety.ca](https://allclearsafety.ca).
 
-<p align="center">
-  <img src="https://img.shields.io/badge/status-active%20development-10B981?style=flat-square" />
-  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/PyTorch%20%2F%20YOLO-EE4C2C?style=flat-square&logo=pytorch&logoColor=white" />
-  <img src="https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
-</p>
+All Clear is a workplace-safety compliance system: it reads the security
+cameras already on an industrial site, detects missing PPE, and writes each
+detection to a timestamped compliance record. In default mode it captures no
+imagery at all.
 
 ---
 
-## What it does
+## This branch is the website only
 
-All Clear connects to a facility's **existing IP cameras** and runs computer-vision detection at the edge to flag personal protective equipment (PPE) violations — a missing hard hat, a missing hi-vis vest — in real time. Each confirmed violation is logged with a timestamp and location, a supervisor is alerted, and the events build into a continuous, auditable safety record.
+`main` is a static marketing site. No login, no dashboard, no database, no
+backend calls.
 
-The product isn't the detection on its own — it's the **automated, defensible compliance audit trail** that detection produces.
+**The product is on `staging`** — the detection pipeline, the supervisor
+dashboard, and the Supabase/S3/Twilio integrations all live there.
 
-## How it works
+---
 
+## Pages
+
+| Route | Page |
+|---|---|
+| `/` | Home |
+| `/how-it-works` | The four-stage pipeline, modes, deployment |
+| `/about` | Who we are, research and support |
+| `/contact` | Pilot request form |
+| `/privacy` | Privacy policy |
+
+The contact form is presentational only — submission is not wired up yet. The
+working path is the `hello@allclearsafety.ca` link beside the button.
+
+---
+
+## Running it
+
+```powershell
+cd dashboard
+npm install
+npm run dev      # http://localhost:3000
 ```
-Existing IP cameras  →  Edge device (on-site GPU)  →  Cloud  →  Real-time alerts + dashboard
-                         · runs detection locally       · stores events
-                         · filters noise                · serves dashboard
-                         · sends only violation events  · triggers alerts
-```
 
-- **Edge-first.** Detection runs on-site. Only structured violation events leave the facility — not raw video. This keeps the system fast, bandwidth-light, resilient to connectivity drops, and privacy-respecting by design.
-- **Noise filtering.** Detections are debounced across frames and rate-limited per event type, so a single violation produces one meaningful alert — not a flood.
-- **Privacy by design.** No continuous footage leaves the site, no facial recognition. The system is built to output *what happened, where, and when* — not to surveil individuals.
+The app lives in `dashboard/` — a historical directory name from when this
+branch mirrored `staging`. Vercel's project root points at it.
 
-## Tech stack
+`npm run build` pulls Roboto from Google Fonts at build time, so a clean first
+build needs network access. Nothing else reaches the network at build or run
+time.
 
-| Layer            | Tools                                              |
-| ---------------- | -------------------------------------------------- |
-| Detection        | Python, PyTorch, YOLO (Ultralytics)                |
-| Edge             | On-site GPU inference                              |
-| Cloud / backend  | AWS (Canadian region), serverless event processing |
-| Data + dashboard | Next.js, real-time data layer                      |
-| Alerts           | SMS / messaging integration                        |
+## Stack
 
-## Status
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4. Five
+dependencies total; no data layer, no UI kit, no icon package.
 
-All Clear is an **incorporated Alberta company** currently in active research commercialization, advancing the system from a working prototype toward validated, real-world deployment through an applied-research program.
+## Deployment
 
-> This repository contains the application code. It is under active development and evolving quickly.
+Vercel, connected to `main`. Every route prerenders as static HTML.
 
-## About
+## Contributing to the design
 
-Built by [Manraj Singh Wazir](https://www.linkedin.com/in/manraj-wazir/) and team.
-For more about the company: [All Clear](REPLACE_WITH_ALL_CLEAR_LINK)
+Layout and copy come from approved mockups in the private internal repo
+(`all-clear-internal/frontend/`). Check those before redesigning a page, and
+see `CLAUDE.md` for the design tokens, layout conventions, mobile requirements,
+and which claims on the site are deliberate.
