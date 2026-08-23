@@ -7,3 +7,4 @@ detection/models/*.pt
 .idea
 .venv
 /docs
+.claude
