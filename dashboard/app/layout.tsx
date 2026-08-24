@@ -17,11 +17,14 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   metadataBase: new URL("https://allclearsafety.ca"),
   title: {
-    default: "All Clear | Computer-vision PPE compliance for Alberta worksites",
+    default: "All Clear | Monitoring system for safety in worksites",
     template: "%s | All Clear",
   },
   description:
-    "All Clear reads the cameras already on your worksite, detects a missing hard hat or hi-vis vest, and writes each one to a timestamped compliance record. The documentation COR certification and your WCB standing depend on.",
+    "All Clear is monitoring system that can be added to cameras already on your worksites, and writes each one to a timestamped compliance record. The documentation COR certification and your WCB standing depend on.",
+  icons: {
+    icon: "favicon.ico"
+  },
   openGraph: {
     type: "website",
     siteName: "All Clear",

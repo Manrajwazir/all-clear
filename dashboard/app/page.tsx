@@ -1,6 +1,7 @@
 import Band, { Card, Eyebrow } from "@/components/site/Band";
 import { PrimaryCTA, SecondaryCTA, ArrowLink } from "@/components/site/Buttons";
 
+
 export const metadata = {
   title: "All Clear | Monitoring system for safety in worksites",
   description:

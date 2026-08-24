@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -36,9 +37,20 @@ export default function SiteHeader() {
         <div className="flex h-[68px] items-center justify-between gap-6 sm:h-[76px]">
           <Link
             href="/"
-            className="flex min-h-[44px] items-center text-[17px] font-medium leading-none tracking-[0.18em]"
+            className="flex min-h-[44px] items-center gap-3"
           >
-            ALL CLEAR
+             <Image
+              src="/icon.png"
+              alt="All Clear"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+              priority
+            />
+            <span className="hidden text-[17px] font-medium leading-none tracking-[0.18em] sm:inline">
+              ALL CLEAR
+            </span>
+           
           </Link>
 
           <nav className="hidden items-center gap-9 lg:flex">
