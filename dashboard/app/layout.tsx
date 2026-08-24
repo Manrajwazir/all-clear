@@ -23,7 +23,9 @@ export const metadata: Metadata = {
   description:
     "All Clear is monitoring system that can be added to cameras already on your worksites, and writes each one to a timestamped compliance record. The documentation COR certification and your WCB standing depend on.",
   icons: {
-    icon: "favicon.ico"
+    icon: "favicon-for-app/favicon.ico",
+    shortcut: "favicon-for-app/icon1.png",
+    apple: "favicon-for-app/apple-icon.png",
   },
   openGraph: {
     type: "website",
