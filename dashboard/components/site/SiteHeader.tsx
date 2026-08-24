@@ -63,7 +63,7 @@ export default function SiteHeader() {
             {showCTA && (
               <Link
                 href="/assessment"
-                className="label bg-cream px-6 py-[14px] text-navy transition-colors hover:bg-cream-50"
+                className="label rounded-soft bg-cream px-6 py-[14px] text-navy transition-colors hover:bg-cream-50"
               >
                 Request an assessment
               </Link>
@@ -124,7 +124,7 @@ export default function SiteHeader() {
             {showCTA && (
               <Link
                 href="/assessment"
-                className="label mt-3 flex min-h-[56px] items-center justify-center bg-cream px-8 text-navy"
+                className="label mt-3 flex min-h-[56px] items-center justify-center rounded-soft bg-cream px-8 text-navy"
               >
                 Request an assessment
               </Link>

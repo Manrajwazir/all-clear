@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 const base =
   "label inline-flex w-full min-[420px]:w-auto items-center justify-center " +
-  "min-h-[52px] px-8 text-center transition-colors duration-150";
+  "min-h-[52px] rounded-soft px-8 text-center transition-colors duration-150";
 
 /** Primary action. Accent on cream, cream on navy. */
 export function PrimaryCTA({

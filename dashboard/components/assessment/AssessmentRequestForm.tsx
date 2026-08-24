@@ -9,7 +9,7 @@ import { MailLink } from "@/components/site/Buttons";
  */
 
 const FIELD =
-  "min-h-[52px] w-full border border-rule-strong bg-cream-50 px-4 py-3.5 " +
+  "min-h-[52px] w-full rounded-soft border border-rule-strong bg-cream-50 px-4 py-3.5 " +
   // 16px keeps iOS Safari from zooming the viewport on focus.
   "text-[16px] text-ink placeholder:text-ink-faint " +
   "focus:border-accent focus:outline-none";
@@ -134,7 +134,7 @@ export default function AssessmentRequestForm() {
         <div className="flex flex-col gap-5 pt-1.5 min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:gap-6">
           <button
             type="button"
-            className="label inline-flex min-h-[54px] w-full items-center justify-center bg-accent px-8 text-cream transition-colors hover:bg-accent-hover min-[420px]:w-auto"
+            className="label inline-flex min-h-[54px] w-full items-center justify-center rounded-soft bg-accent px-8 text-cream transition-colors hover:bg-accent-hover min-[420px]:w-auto"
           >
             Send request
           </button>

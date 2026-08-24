@@ -140,7 +140,7 @@ export default function PrivacyPage() {
                 only for the purpose described.
               </P>
 
-              <Card on="cream-200" className="my-6 p-0">
+              <Card on="cream-200" className="my-6 overflow-hidden p-0">
                 <div className="flex items-baseline justify-between gap-6 px-5 py-4">
                   <span className="label text-accent">Service provider</span>
                   <span className="label text-ink-muted">Purpose</span>

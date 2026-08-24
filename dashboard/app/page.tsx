@@ -100,7 +100,7 @@ export default function HomePage() {
         <div className="relative">
           <span
             aria-hidden="true"
-            className="animate-ac-run absolute -top-3 left-0 hidden h-[7px] w-[7px] bg-accent lg:block"
+            className="animate-ac-run absolute -top-3 left-0 hidden h-[7px] w-[7px] rounded-soft bg-accent lg:block"
           />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
             <Step
@@ -163,7 +163,7 @@ export default function HomePage() {
 
           {/* The record itself — a navy-700 card, no borders */}
           <div>
-            <Card on="navy" className="p-0">
+            <Card on="navy" className="overflow-hidden p-0">
               <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 px-6 py-5">
                 <span className="label text-accent-on-navy">
                   Compliance event

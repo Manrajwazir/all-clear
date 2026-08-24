@@ -67,7 +67,9 @@ export function Card({
   }[on];
 
   return (
-    <div className={cn(surface, "p-7 sm:p-8", className)}>{children}</div>
+    <div className={cn(surface, "rounded-soft p-7 sm:p-8", className)}>
+      {children}
+    </div>
   );
 }
 

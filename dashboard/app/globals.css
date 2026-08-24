@@ -36,6 +36,12 @@
   --accent-hover: #24399a;
   --accent-on-navy: #8fa3c4;
 
+  /* --- Corner radius ----------------------------------------
+     A 3px softening on every box. Enough to take the hard edge off
+     cards, buttons and fields without reading as a rounded/consumer
+     UI, which would fight the industrial-document feel.            */
+  --radius-soft: 3px;
+
   /* --- Hairlines --------------------------------------------
      Deliberately few. Structural separation is done with
      surfaces; these are for inside data tables only.            */
@@ -68,6 +74,8 @@
   --color-rule-strong: var(--rule-strong);
   --color-rule-inverse: var(--rule-inverse);
   --color-rule-inverse-strong: var(--rule-inverse-strong);
+
+  --radius-soft: var(--radius-soft);
 
   --font-sans: var(--font-roboto), Helvetica, Arial, sans-serif;
 }

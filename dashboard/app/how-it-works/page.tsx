@@ -124,7 +124,7 @@ export default function HowItWorksPage() {
             </p>
           </Stage>
 
-          <Card on="cream" className="p-0">
+          <Card on="cream" className="overflow-hidden p-0">
             <div className="label px-6 py-5 text-accent">
               Fields on every event
             </div>
