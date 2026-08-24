@@ -112,6 +112,26 @@ typeface switch.
 
 Do not add a second family.
 
+### Corners and motion
+
+Every box carries `rounded-soft` (3px, `--radius-soft`) — cards, buttons,
+form fields, data panels. Small on purpose: enough to soften the edge without
+reading as a rounded consumer UI. Data panels that hold an edge-to-edge
+hairline grid also need `overflow-hidden`, or the inner grid squares off the
+corner.
+
+Sections fade in on scroll via `ScrollReveal`, mounted once in the layout.
+It observes `[data-reveal]`, which `Band` emits by default.
+
+**The hidden state is scoped to `.js-reveal`, a class the component adds to
+`<html>` only after it mounts.** Keep it that way. If the hidden state were
+unconditional, a failed JS chunk would leave the whole page invisible; scoping
+it means no script simply means no animation.
+
+Pass `reveal={false}` on any band that is above the fold, or that contains a
+`position: sticky` child — the reveal's `translateY` would become that child's
+containing block. The privacy contents rail is the live example.
+
 ### Layout
 
 - `Container` — 1440px measure, `clamp(20px,5vw,64px)` gutters.
@@ -204,3 +224,18 @@ specifically removed "manufacturing" as a segment label — do not reintroduce i
 
 **Prevention is not the headline.** Discovery validated that the automated
 documentation is the value and prevention is secondary. Lead with the record.
+
+**The homepage H1 is the company tagline** from the pitch deck's slide 1:
+"Proof your worksite was safe, before anyone asks for it." The eyebrow above it
+states the category outright, and the subhead says what the system does in
+plain mechanism terms. This ordering is deliberate — an earlier version led
+with "Most operators run safe sites. Few can prove it.", which is a problem
+statement and left a cold visitor never learning what the product is. That line
+now heads the WCB/COR section instead, which is where it belongs.
+
+Note the deck's slide 3 tagline ("Detect it. Document it. Prevent the next
+one.") is flagged in the discovery log as having drifted prevention-first. Do
+not adopt it.
+
+**No em-dashes in user-visible copy.** Use a colon, a comma, or a full stop.
+This covers page titles and meta descriptions too. Source comments are exempt.
