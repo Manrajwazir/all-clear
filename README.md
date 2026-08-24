@@ -30,8 +30,10 @@ dashboard, and the Supabase/S3/Twilio integrations all live there.
 | `/contact` | General enquiries only |
 | `/privacy` | Privacy policy |
 
-The assessment form is presentational only — submission is not wired up yet.
-The working path is the `hello@allclearsafety.ca` link beside the button.
+The assessment form posts to `app/api/assessment/route.ts`, which emails the
+submission to `hello@allclearsafety.ca` through AWS SES. It needs the env vars
+in `dashboard/.env.local.example` set locally and in Vercel; without them the
+endpoint fails loudly and points the submitter at the mailto instead.
 
 ---
 
@@ -52,8 +54,9 @@ time.
 
 ## Stack
 
-Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4. Five
-dependencies total; no data layer, no UI kit, no icon package. One typeface
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4, plus AWS SES
+and Upstash for the one form endpoint. No data layer, no UI kit, no icon
+package. One typeface
 (Roboto) and a six-step cream/navy surface ladder — sections are separated by
 a change of surface rather than by dividing rules.
 

@@ -27,6 +27,8 @@ const PROCESSORS = [
   ["Database provider", "Storing compliance records"],
   ["Cloud storage provider", "Snapshot mode only, when enabled"],
   ["SMS provider", "Delivering alerts to supervisors"],
+  ["Email provider", "Delivering website form submissions to us"],
+  ["Rate-limiting provider", "Short-lived abuse prevention on our forms"],
 ];
 
 export default function PrivacyPage() {
@@ -80,6 +82,12 @@ export default function PrivacyPage() {
                 event records containing a timestamp, the site and zone, the
                 source camera identifier, the type of PPE detected as absent,
                 and a confidence score.
+              </P>
+              <P>
+                A form submission is delivered to us by email and kept in our
+                mailbox. We also record the submitting IP address for a short
+                period, purely to stop the form being used for spam. It is not
+                used to identify you and is not kept beyond that window.
               </P>
               <Note>
                 [Placeholder: final legal language to be supplied, including any
@@ -169,11 +177,16 @@ export default function PrivacyPage() {
             </Clause>
 
             <Clause id="s6" heading="Where it is stored">
-              <P last>
+              <P>
                 Compliance records and any snapshots taken in snapshot mode are
                 stored on Canadian infrastructure, in a Canadian region. Video
                 itself does not leave the customer&rsquo;s site in default mode,
                 because it is analyzed on the device there and discarded.
+              </P>
+              <P last>
+                Website form submissions are sent through a Canadian region of
+                our email provider and then live in our mailbox like any other
+                message.
               </P>
             </Clause>
 

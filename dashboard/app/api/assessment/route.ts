@@ -1,0 +1,113 @@
+import { NextResponse } from "next/server";
+import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import {
+  HONEYPOT_FIELD,
+  MAX_BODY_BYTES,
+  MIN_FILL_MS,
+  formatEmail,
+  validate,
+} from "@/lib/assessment-request";
+import { checkRateLimit, clientIp } from "@/lib/rate-limit";
+
+export const runtime = "nodejs";
+// Nothing here is cacheable and the whole point is the side effect.
+export const dynamic = "force-dynamic";
+
+const FROM = process.env.ASSESSMENT_FROM_EMAIL;
+const TO = process.env.ASSESSMENT_TO_EMAIL;
+const REGION = process.env.AWS_REGION ?? "ca-central-1";
+
+/** Same shape for every failure the submitter is allowed to see. */
+function fail(message: string, status: number) {
+  return NextResponse.json({ ok: false, error: message }, { status });
+}
+
+export async function POST(request: Request) {
+  // 1. Size. Reject before parsing so a huge body is never held in memory.
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > MAX_BODY_BYTES) {
+    return fail("That message is too long to send.", 413);
+  }
+
+  const raw = await request.text();
+  if (raw.length > MAX_BODY_BYTES) {
+    return fail("That message is too long to send.", 413);
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return fail("Malformed request.", 400);
+  }
+
+  const body = payload as Record<string, unknown>;
+
+  // 2. Honeypot. A hidden field only an automated filler would populate.
+  //    Answer 200 so a bot cannot tell it was caught and retry differently.
+  if (typeof body[HONEYPOT_FIELD] === "string" && body[HONEYPOT_FIELD]) {
+    return NextResponse.json({ ok: true });
+  }
+
+  // 3. Fill time. A speed bump rather than a control, since the client
+  //    supplies it, but it costs nothing and stops naive scripted posts.
+  const elapsed = Number(body.elapsed_ms);
+  if (Number.isFinite(elapsed) && elapsed >= 0 && elapsed < MIN_FILL_MS) {
+    return NextResponse.json({ ok: true });
+  }
+
+  // 4. Rate limit per IP.
+  const { allowed } = await checkRateLimit(clientIp(request.headers));
+  if (!allowed) {
+    return fail(
+      "That's a few requests in a short window. Try again shortly, or email us directly.",
+      429,
+    );
+  }
+
+  // 5. Validate and clean. Everything downstream trusts this result.
+  const result = validate(body);
+  if (!result.ok) return fail(result.error, 400);
+
+  if (!FROM || !TO) {
+    // Misconfiguration, not the submitter's problem. Say so plainly rather
+    // than accepting the request and dropping it.
+    console.error("Assessment form: ASSESSMENT_FROM_EMAIL/TO_EMAIL not set");
+    return fail(
+      "We couldn't send that just now. Please email hello@allclearsafety.ca.",
+      500,
+    );
+  }
+
+  const { subject, body: text } = formatEmail(result.data);
+
+  try {
+    const ses = new SESv2Client({ region: REGION });
+    await ses.send(
+      new SendEmailCommand({
+        FromEmailAddress: FROM,
+        Destination: { ToAddresses: [TO] },
+        // Set from the validated address so a reply goes to the prospect.
+        // validate() has already stripped CR/LF, so this cannot carry a
+        // second header into the message.
+        ReplyToAddresses: [result.data.email],
+        Content: {
+          Simple: {
+            Subject: { Data: subject, Charset: "UTF-8" },
+            // Text only. No HTML part means no markup a submitter could
+            // inject into what lands in the inbox.
+            Body: { Text: { Data: text, Charset: "UTF-8" } },
+          },
+        },
+      }),
+    );
+  } catch (error) {
+    console.error("Assessment form: SES send failed", error);
+    return fail(
+      "We couldn't send that just now. Please email hello@allclearsafety.ca.",
+      502,
+    );
+  }
+
+  return NextResponse.json({ ok: true });
+}

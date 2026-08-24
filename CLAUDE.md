@@ -14,7 +14,14 @@ dashboard, Supabase, S3 and Twilio are all there, not here. If you are looking
 for `detection/`, `app/dashboard/`, `lib/supabase/` or the API routes, switch
 branches — they were removed from `main` deliberately, not lost.
 
-Do not add a backend dependency to this branch.
+**One backend path exists, deliberately.** `app/api/assessment/route.ts`
+emails the assessment form to `hello@allclearsafety.ca` via AWS SES. That was
+decided on 2026-08-23; before it, this branch had none. It stays the only one.
+Anything else that needs to talk to a service is a decision to make first, not
+a refactor to slip in.
+
+Do not add a database, an auth layer, or a Supabase client here. The form
+endpoint sends mail and stores nothing.
 
 ---
 
@@ -157,20 +164,48 @@ Supervisors read this outdoors, one-handed, in gloves.
 
 ---
 
-## The assessment form is not wired up
+## The assessment form
 
-`components/assessment/AssessmentRequestForm.tsx` is **presentational only**.
-No submission backend has been chosen.
+`components/assessment/AssessmentRequestForm.tsx` posts to
+`app/api/assessment/route.ts`, which sends a plain-text email via SES.
 
-It deliberately has no `<form>` element, no `action` and no submit handler — a
-bare `<form>` would let an Enter keypress GET the page with the visitor's
-details in the URL. The working path is the `hello@allclearsafety.ca` mailto
-beside the button.
+Env vars are listed in `dashboard/.env.local.example`. All of them also need
+setting in the Vercel project, or the endpoint returns a 500 and tells the
+submitter to email instead.
 
-If you wire up submission, that is the change to make — do not add a handler
-that silently discards input.
+**SES setup this depends on.** `ASSESSMENT_FROM_EMAIL` must be a verified SES
+identity. While the account is in the SES sandbox the recipient must be
+verified too, which is fine because it is our own address. The `allclear-app`
+IAM user is scoped to S3 only, so `ses:SendEmail` needs adding to its policy or
+a separate principal creating.
 
----
+### The protections, and why each is there
+
+The risk here is not data theft; there is nothing stored to steal. It is the
+sending reputation of `allclearsafety.ca` — the same domain company email and
+every grant application run on — plus `hello@` staying usable.
+
+| Layer | Where | Note |
+|---|---|---|
+| Honeypot field | form + route | Off-screen, `aria-hidden`, `tabIndex={-1}`. Removing it from either side without the other silently disables the check. |
+| Minimum fill time | form + route | A speed bump, not a control: the client supplies the number. |
+| Per-IP rate limit | `lib/rate-limit.ts` | 3 per 10 minutes, Upstash. **Fails open on purpose** — losing a real enquiry is worse than letting spam through, and the honeypot still applies. |
+| Body size cap | route | Checked before parsing. |
+| Field validation | `lib/assessment-request.ts` | Length caps per field; everything downstream trusts the result. |
+| Control-character stripping | `lib/assessment-request.ts` | CR/LF are the email-header injection vector. |
+| Plain-text email only | route | No HTML part means no markup a submitter can inject into the inbox. |
+
+Hardcode the envelope. `FromEmailAddress` and `ToAddresses` come from env, never
+from the request. `ReplyToAddresses` uses the submitted address only after
+validation has stripped control characters.
+
+**Never let a submission fail silently.** A send failure must surface an error
+and the mailto. Someone describing their site's compliance gaps deserves to know
+the message did not arrive.
+
+CAPTCHA was considered and skipped — it costs conversion, and honeypot plus rate
+limiting is enough at this traffic level. Cloudflare Turnstile is the escalation
+if spam actually gets through.
 
 ## Claims on the site — check these before editing copy
 
