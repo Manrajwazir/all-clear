@@ -8,7 +8,7 @@ export const metadata = {
     "How All Clear handles information from website visitors and from customers running the system on their sites, under Alberta PIPA.",
 };
 
-const LAST_UPDATED = "23 August 2026";
+const LAST_UPDATED = "August 2026";
 
 const CONTENTS = [
   ["s1", "What we collect"],
@@ -89,10 +89,6 @@ export default function PrivacyPage() {
                 period, purely to stop the form being used for spam. It is not
                 used to identify you and is not kept beyond that window.
               </P>
-              <Note>
-                [Placeholder: final legal language to be supplied, including any
-                website analytics disclosure.]
-              </Note>
             </Clause>
 
             <Clause id="s2" heading="Imagery and default mode">
@@ -197,7 +193,7 @@ export default function PrivacyPage() {
                 review asks for a past period.
               </P>
               <Note>
-                [Placeholder: specific retention periods to be supplied.]
+                [Specific retention periods to be supplied.]
               </Note>
             </Clause>
 

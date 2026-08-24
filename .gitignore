@@ -2,7 +2,7 @@
 venv
 __pycache__
 *.pyc
-detection/models/*.pt
+.detection/models/*.pt
 .vscode
 .idea
 .venv

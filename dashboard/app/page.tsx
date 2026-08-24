@@ -2,9 +2,9 @@ import Band, { Card, Eyebrow } from "@/components/site/Band";
 import { PrimaryCTA, SecondaryCTA, ArrowLink } from "@/components/site/Buttons";
 
 export const metadata = {
-  title: "All Clear | Computer-vision PPE compliance for Alberta worksites",
+  title: "All Clear | Monitoring system for safety in worksites",
   description:
-    "All Clear reads the cameras already on your worksite, detects a missing hard hat or hi-vis vest, and writes each one to a timestamped compliance record. The documentation COR certification and your WCB standing depend on.",
+    "Get AI-Driven risk assessment for your worksite. Discover cost drivers, hazards, and get the documentation certificate of recognition(COR) to what your WCB standing depends on.",
 };
 
 export default function HomePage() {
@@ -13,18 +13,18 @@ export default function HomePage() {
       {/* ═══ 1. Hero — cream base ═══════════════════════════════ */}
       <Band tone="cream" size="loose" reveal={false}>
         <Eyebrow className="mb-8">
-          Computer-vision PPE compliance &nbsp;·&nbsp; Alberta worksites
+          Monitoring system for safety in&nbsp;·&nbsp; worksites
         </Eyebrow>
 
         <div className="grid grid-cols-1 items-end gap-y-10 lg:grid-cols-[1.15fr_1fr] lg:gap-x-20">
           <h1 className="text-[clamp(38px,6.4vw,76px)] font-medium leading-[1.02] tracking-[-0.03em]">
-            Proof your worksite was safe, before anyone asks for it.
+            Safety you can see. Proof you can trust.
           </h1>
 
           <div className="lg:pb-2">
             <p className="text-[17px] leading-[1.65] text-ink-muted sm:text-[19px]">
-              All Clear reads the security cameras already on your site, detects
-              a missing hard hat or hi-vis vest, and writes each one to a
+              All Clear is a monitoring system that is added to security cameras already on your site, 
+              and writes each one to a
               timestamped compliance record. That record is what a COR audit
               asks for, and what your WCB standing rests on.
             </p>
@@ -40,7 +40,7 @@ export default function HomePage() {
       <Band tone="cream-200">
         <div className="grid grid-cols-1 gap-y-10 lg:grid-cols-[1fr_1fr] lg:gap-x-20">
           <div>
-            <Eyebrow className="mb-6">Why documentation is the product</Eyebrow>
+            <Eyebrow className="mb-6">The product</Eyebrow>
             <h2 className="text-[clamp(26px,3.4vw,40px)] font-medium leading-[1.15] tracking-[-0.02em]">
               Most operators run safe sites. Few can prove it.
             </h2>
@@ -218,7 +218,7 @@ export default function HomePage() {
                 "Edmonton Unlimited",
                 "Alberta Innovates",
                 "City of Edmonton",
-                "NAIT CSSI",
+                "NAIT",
               ].map((name) => (
                 <span key={name} className="text-[16px] font-medium">
                   {name}
@@ -252,7 +252,7 @@ export default function HomePage() {
       <Band tone="navy" size="loose">
         <div className="flex flex-wrap items-end justify-between gap-x-16 gap-y-9">
           <h2 className="max-w-[20ch] text-[clamp(28px,4vw,46px)] font-medium leading-[1.1] tracking-[-0.025em]">
-            Start with one site and see what the record looks like.
+            Start with one site. See what your safety record looks like.
           </h2>
           <PrimaryCTA inverse href="/assessment" className="whitespace-nowrap">
             Request an assessment
