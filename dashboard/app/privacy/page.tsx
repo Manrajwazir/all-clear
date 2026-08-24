@@ -1,25 +1,26 @@
-import Container from "@/components/site/Container";
+import Band, { Card, Eyebrow } from "@/components/site/Band";
 import PageHero from "@/components/site/PageHero";
-import { Band } from "@/components/site/Rail";
 import { MailLink } from "@/components/site/Buttons";
 
 export const metadata = {
   title: "Privacy policy",
   description:
-    "How All Clear Inc. handles information from website visitors and from customers running the system on their sites.",
+    "How All Clear handles information from website visitors and from customers running the system on their sites, under Alberta PIPA.",
 };
 
-const LAST_UPDATED = "22 AUGUST 2026";
+const LAST_UPDATED = "23 August 2026";
 
 const CONTENTS = [
-  ["s1", "01", "What we collect"],
-  ["s2", "02", "Imagery and default mode"],
-  ["s3", "03", "How we use it"],
-  ["s4", "04", "Who we share it with"],
-  ["s5", "05", "Retention"],
-  ["s6", "06", "Your requests"],
-  ["s7", "07", "Changes"],
-  ["s8", "08", "Contact"],
+  ["s1", "What we collect"],
+  ["s2", "Imagery and default mode"],
+  ["s3", "Workers and PIPA"],
+  ["s4", "How we use it"],
+  ["s5", "Who we share it with"],
+  ["s6", "Where it is stored"],
+  ["s7", "Retention"],
+  ["s8", "Your requests"],
+  ["s9", "Changes"],
+  ["s10", "Contact"],
 ];
 
 const PROCESSORS = [
@@ -34,51 +35,49 @@ export default function PrivacyPage() {
       <PageHero
         eyebrow="Privacy policy"
         aside={
-          <div className="font-mono text-[11px] tracking-[0.1em] text-slate">
-            LAST UPDATED &mdash; {LAST_UPDATED}
+          <div className="label text-ink-muted">
+            Last updated &nbsp;·&nbsp; {LAST_UPDATED}
           </div>
         }
         title="What we collect, and what we deliberately don't."
-        lead="This page explains how All Clear Inc. handles information from visitors to this website and from customers running our system on their sites."
+        lead="This page explains how 2819394 Alberta Corp., operating as All Clear, handles information from visitors to this website and from customers running our system on their sites."
       />
 
-      <Band>
-        <Container className="grid grid-cols-1 items-start gap-y-10 py-14 lg:grid-cols-[240px_1fr] lg:gap-x-16">
-          {/* Contents — two-up on a phone so it doesn't push the policy off
-              the first screen, sticky rail from lg up. */}
+      <Band tone="cream-200">
+        <div className="grid grid-cols-1 items-start gap-y-10 lg:grid-cols-[240px_1fr] lg:gap-x-20">
           <nav aria-label="Contents" className="lg:sticky lg:top-28">
-            <h2 className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-slate">
-              Contents
-            </h2>
-            <ul className="grid grid-cols-2 gap-x-6 lg:grid-cols-1 lg:gap-y-0.5">
-              {CONTENTS.map(([id, num, label]) => (
+            <Eyebrow className="mb-3">Contents</Eyebrow>
+            <ol className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-1 lg:gap-y-0.5">
+              {CONTENTS.map(([id, label], i) => (
                 <li key={id}>
                   <a
                     href={`#${id}`}
-                    className="flex min-h-[44px] items-center gap-2 font-mono text-[12px] tracking-[0.06em] text-slate transition-colors hover:text-navy lg:min-h-[32px]"
+                    className="flex min-h-[44px] items-center gap-3 text-[14px] text-ink-muted transition-colors hover:text-accent lg:min-h-[34px]"
                   >
-                    <span>{num}</span>
+                    <span className="tabular text-ink-faint">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
                     <span>{label}</span>
                   </a>
                 </li>
               ))}
-            </ul>
+            </ol>
           </nav>
 
-          <div className="min-w-0 max-w-[70ch]">
-            <Clause id="s1" num="01" heading="What information we collect">
+          <div className="measure min-w-0">
+            <Clause id="s1" heading="What information we collect" first>
               <P>
-                When you contact us or request a pilot, we collect the
+                When you contact us or request an assessment, we collect the
                 information you send us: your name, company, role, work email,
-                the type and location of the site you&rsquo;re asking about, and
-                the contents of your message.
+                the type and location of the site you&rsquo;re asking about,
+                your camera and COR status, and the contents of your message.
               </P>
               <P>
                 When our system runs on a customer&rsquo;s site, we process
                 camera feeds provided by that customer and generate compliance
                 event records containing a timestamp, the site and zone, the
-                source camera identifier, and the type of PPE detected as
-                absent.
+                source camera identifier, the type of PPE detected as absent,
+                and a confidence score.
               </P>
               <Note>
                 [Placeholder &mdash; final legal language to be supplied,
@@ -86,7 +85,7 @@ export default function PrivacyPage() {
               </Note>
             </Clause>
 
-            <Clause id="s2" num="02" heading="Imagery and default mode">
+            <Clause id="s2" heading="Imagery and default mode">
               <P>
                 In default mode, All Clear collects no imagery. Camera frames
                 are analyzed on a device located on the customer&rsquo;s site
@@ -102,11 +101,29 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s3" num="03" heading="How we use information">
+            <Clause id="s3" heading="Workers and PIPA">
               <P>
-                Contact information is used to reply to your inquiry, arrange a
-                pilot, and follow up about it. We do not sell it, and we do not
-                use it for unrelated marketing.
+                We want to be precise about something that is easy to overstate.
+                Storing no imagery does not automatically make an event record
+                non-personal. An entry reading &ldquo;no hard hat, Zone B,
+                14:03&rdquo; can identify a specific worker if only one person
+                was in that zone at that time.
+              </P>
+              <P last>
+                Employer obligations under Alberta&rsquo;s Personal Information
+                Protection Act therefore still apply in default mode, including
+                notifying workers that the system is in use. All Clear is the
+                service provider; the customer operating the site is the
+                organization responsible for that notification, and we support
+                it as part of deployment.
+              </P>
+            </Clause>
+
+            <Clause id="s4" heading="How we use information">
+              <P>
+                Contact information is used to reply to your inquiry, arrange an
+                assessment, and follow up about it. We do not sell it, and we do
+                not use it for unrelated marketing.
               </P>
               <P last>
                 Compliance event data is used to deliver the service to the
@@ -116,34 +133,32 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s4" num="04" heading="Who we share it with">
+            <Clause id="s5" heading="Who we share it with">
               <P>
                 We use a small number of third-party service providers to
                 operate the product. They process data on our instructions and
                 only for the purpose described.
               </P>
 
-              <div className="mb-4 mt-6 border border-rule-strong bg-cream-wash">
-                <div className="flex items-baseline justify-between gap-6 border-b border-rule px-5 py-3.5">
-                  <span className="label-mono">Service provider</span>
-                  <span className="label-mono text-slate">Purpose</span>
+              <Card on="cream-200" className="my-6 p-0">
+                <div className="flex items-baseline justify-between gap-6 px-5 py-4">
+                  <span className="label text-accent">Service provider</span>
+                  <span className="label text-ink-muted">Purpose</span>
                 </div>
-                {PROCESSORS.map(([name, purpose], i) => (
-                  <div
-                    key={name}
-                    className={`flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6 ${
-                      i < PROCESSORS.length - 1
-                        ? "border-b border-rule-soft"
-                        : ""
-                    }`}
-                  >
-                    <span className="text-[15px]">{name}</span>
-                    <span className="font-mono text-[13px] text-slate sm:text-right">
-                      {purpose}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                <div className="grid grid-cols-1 gap-px bg-rule">
+                  {PROCESSORS.map(([name, purpose]) => (
+                    <div
+                      key={name}
+                      className="flex flex-col gap-1 bg-cream-50 px-5 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6"
+                    >
+                      <span className="text-[15px]">{name}</span>
+                      <span className="text-[14px] text-ink-muted sm:text-right">
+                        {purpose}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
 
               <P last>
                 We may also disclose information where we are required to by
@@ -151,7 +166,16 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s5" num="05" heading="How long we keep it">
+            <Clause id="s6" heading="Where it is stored">
+              <P last>
+                Compliance records and any snapshots taken in snapshot mode are
+                stored on Canadian infrastructure, in a Canadian region. Video
+                itself does not leave the customer&rsquo;s site in default mode,
+                because it is analyzed on the device there and discarded.
+              </P>
+            </Clause>
+
+            <Clause id="s7" heading="How long we keep it">
               <P>
                 Compliance records are retained for the period agreed with the
                 customer, since their value is being available when an audit or
@@ -162,35 +186,36 @@ export default function PrivacyPage() {
               </Note>
             </Clause>
 
-            <Clause id="s6" num="06" heading="Access, correction and deletion">
+            <Clause id="s8" heading="Access, correction and deletion">
               <P last>
                 You can ask us what information we hold about you, ask us to
-                correct it, or ask us to delete it. Write to the address in
-                section 08 and we will respond.
+                correct it, or ask us to delete it. Write to the address in the
+                last section and we will respond.
               </P>
             </Clause>
 
-            <Clause id="s7" num="07" heading="Changes to this policy">
+            <Clause id="s9" heading="Changes to this policy">
               <P last>
                 If this policy changes, we will update this page and revise the
                 date at the top of it.
               </P>
             </Clause>
 
-            <Clause id="s8" num="08" heading="Contact us" last>
+            <Clause id="s10" heading="Contact us" last>
               <P>
                 For a privacy question or a request about your information:
               </P>
-              <p className="font-mono text-[14px] leading-[2] tracking-[0.04em]">
+              <div className="text-[17px]">
                 <MailLink>hello@allclearsafety.ca</MailLink>
+              </div>
+              <p className="mt-3 text-[15px] leading-[1.8] text-ink-muted">
+                2819394 Alberta Corp., operating as All Clear
                 <br />
-                <span className="text-slate">
-                  All Clear Inc. &mdash; Edmonton, Alberta, Canada
-                </span>
+                Edmonton, Alberta, Canada
               </p>
             </Clause>
           </div>
-        </Container>
+        </div>
       </Band>
     </>
   );
@@ -200,30 +225,23 @@ export default function PrivacyPage() {
 
 function Clause({
   id,
-  num,
   heading,
+  first = false,
   last = false,
   children,
 }: {
   id: string;
-  num: string;
   heading: string;
+  first?: boolean;
   last?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <section
       id={id}
-      className={
-        num === "01"
-          ? "pb-11"
-          : last
-            ? "border-t border-rule-soft pt-11"
-            : "border-t border-rule-soft py-11"
-      }
+      className={first ? "pb-10" : last ? "pt-10" : "py-10"}
     >
-      <div className="label-mono mb-3.5 text-slate">{num}</div>
-      <h2 className="mb-4 text-[22px] font-medium tracking-[-0.015em] sm:text-[26px]">
+      <h2 className="mb-4 text-[21px] font-medium tracking-[-0.015em] sm:text-[25px]">
         {heading}
       </h2>
       {children}
@@ -240,8 +258,8 @@ function P({
 }) {
   return (
     <p
-      className={`text-[16px] font-light leading-[1.75] text-slate ${
-        last ? "" : "mb-3.5"
+      className={`text-[16px] leading-[1.75] text-ink-muted ${
+        last ? "" : "mb-4"
       }`}
     >
       {children}
@@ -251,7 +269,7 @@ function P({
 
 function Note({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-[12px] leading-[1.9] tracking-[0.04em] text-slate">
+    <p className="border-l-2 border-accent/40 pl-4 text-[14px] leading-[1.8] text-ink-faint">
       {children}
     </p>
   );

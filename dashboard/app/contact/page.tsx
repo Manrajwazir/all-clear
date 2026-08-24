@@ -1,62 +1,90 @@
-import Container from "@/components/site/Container";
+import Band, { Card, Eyebrow } from "@/components/site/Band";
 import PageHero from "@/components/site/PageHero";
-import { Band } from "@/components/site/Rail";
-import PilotRequestForm from "@/components/contact/PilotRequestForm";
+import { PrimaryCTA, MailLink } from "@/components/site/Buttons";
 
 export const metadata = {
-  title: "Request a pilot",
+  title: "Contact",
   description:
-    "A pilot runs on your own cameras, on one site, so you are evaluating real records from your own yard rather than a demo.",
+    "Reach All Clear in Edmonton, Alberta — hello@allclearsafety.ca. For a pilot or a quote, request a safety risk assessment.",
 };
-
-const ASSURANCES = [
-  [
-    "No credit card",
-    "The pilot has no cost and no commitment attached. Nothing is invoiced during it.",
-  ],
-  [
-    "Your own cameras",
-    "The demo runs on the feeds you already have, on a site you pick. No hardware purchase to evaluate it.",
-  ],
-  [
-    "No imagery by default",
-    "Default mode stores structured events only. Snapshots are off unless you ask for them.",
-  ],
-  [
-    "What happens next",
-    "A short call about your camera setup and the zones you need documented, then we scope the pilot from there.",
-  ],
-];
 
 export default function ContactPage() {
   return (
     <>
       <PageHero
-        eyebrow="Request a pilot"
-        title="Tell us about one site. We'll take it from there."
-        lead="A pilot runs on your own cameras, on one site, so you are evaluating real records from your own yard rather than a demo."
+        eyebrow="Contact"
+        title="Talk to the two people who build it."
+        lead="There is no sales team to route around. Email reaches both founders directly, and we answer our own inbox."
       />
 
-      <Band>
-        <Container className="grid grid-cols-1 items-start gap-y-12 pb-[clamp(48px,7.5vw,88px)] pt-[clamp(36px,6vw,64px)] lg:grid-cols-[1.3fr_1fr] lg:gap-x-20">
-          <PilotRequestForm />
+      <Band tone="cream-200">
+        <div className="grid grid-cols-1 gap-y-12 lg:grid-cols-[1fr_1fr] lg:gap-x-20">
+          <div>
+            <Eyebrow className="mb-6">General enquiries</Eyebrow>
+            <h2 className="text-[clamp(24px,3vw,34px)] font-medium leading-[1.2] tracking-[-0.02em]">
+              Questions about privacy, partnerships, or press.
+            </h2>
+            <p className="measure mt-6 text-[16px] leading-[1.7] text-ink-muted sm:text-[17px]">
+              Anything that isn&rsquo;t a request to scope a site is best sent
+              by email. That includes privacy questions and requests about your
+              own information under Alberta PIPA, which are covered in the
+              privacy policy.
+            </p>
+            <div className="mt-6 text-[18px]">
+              <MailLink>hello@allclearsafety.ca</MailLink>
+            </div>
+          </div>
 
-          <aside className="flex flex-col border-t border-rule-strong">
-            {ASSURANCES.map(([heading, body], i) => (
-              <div
-                key={heading}
-                className={`py-6 ${
-                  i < ASSURANCES.length - 1 ? "border-b border-rule-soft" : ""
-                }`}
-              >
-                <h2 className="label-mono mb-2.5 text-slate">{heading}</h2>
-                <p className="text-[15px] font-light leading-[1.65] text-slate">
-                  {body}
-                </p>
-              </div>
-            ))}
-          </aside>
-        </Container>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:content-start">
+            <Card on="cream-200">
+              <div className="label mb-3 text-accent">Where we are</div>
+              <p className="text-[16px] leading-[1.7]">
+                Edmonton, Alberta
+                <br />
+                <span className="text-ink-muted">Canada</span>
+              </p>
+            </Card>
+            <Card on="cream-200">
+              <div className="label mb-3 text-accent">Who answers</div>
+              <p className="text-[16px] leading-[1.7]">
+                Both founders
+                <br />
+                <span className="text-ink-muted">No sales team</span>
+              </p>
+            </Card>
+            <Card on="cream-200" className="sm:col-span-2">
+              <div className="label mb-3 text-accent">Legal entity</div>
+              <p className="text-[15px] leading-[1.7] text-ink-muted">
+                2819394 Alberta Corp., operating as All Clear. Incorporated in
+                Alberta.
+              </p>
+            </Card>
+          </div>
+        </div>
+      </Band>
+
+      {/* Scoping a site belongs on the assessment page, not here. */}
+      <Band tone="navy" size="loose">
+        <div className="grid grid-cols-1 gap-y-9 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-x-20">
+          <div>
+            <Eyebrow inverse className="mb-6">
+              Looking to scope a site?
+            </Eyebrow>
+            <h2 className="max-w-[24ch] text-[clamp(26px,3.6vw,42px)] font-medium leading-[1.1] tracking-[-0.025em]">
+              That starts with a risk assessment, not an email thread.
+            </h2>
+            <p className="measure mt-6 text-[16px] leading-[1.7] text-ink-inverse/85 sm:text-[17px]">
+              The assessment form asks the handful of things we need to scope
+              properly — site type, existing cameras, COR status — so the first
+              call is useful rather than exploratory.
+            </p>
+          </div>
+          <div className="flex lg:justify-end">
+            <PrimaryCTA inverse href="/assessment" className="whitespace-nowrap">
+              Request an assessment
+            </PrimaryCTA>
+          </div>
+        </div>
       </Band>
     </>
   );

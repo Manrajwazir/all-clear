@@ -1,44 +1,58 @@
-import Container from "@/components/site/Container";
+import Band, { Card, Eyebrow } from "@/components/site/Band";
 import PageHero from "@/components/site/PageHero";
-import { Band, RailSection } from "@/components/site/Rail";
-import { SolidCTA } from "@/components/site/Buttons";
-import { HairlineGrid, HairlineCell } from "@/components/site/Hairline";
+import { PrimaryCTA } from "@/components/site/Buttons";
 
 export const metadata = {
   title: "How it works",
   description:
-    "Four stages from an existing camera feed to a compliance record: on-site inference, a structured entry, and an SMS to the supervisor who can act.",
+    "Four stages from an existing camera feed to a compliance record: on-site inference, a structured entry with a confidence score, and a text to the supervisor who can act.",
 };
 
 const FIELDS = [
   ["Timestamp", "Local time, to the second"],
-  ["Site", "Named site and zone"],
-  ["Camera", "Source camera ID"],
+  ["Site and zone", "Named site and the zone it covers"],
+  ["Camera", "Source camera identifier"],
   ["Event type", "Which PPE item was absent"],
+  ["Confidence", "How certain the model was"],
   ["Alert", "Who was notified, and when"],
   ["Imagery", "None, unless snapshot mode is on"],
 ];
 
+const CAPABILITIES = [
+  [
+    "Runs on the cameras you have",
+    "Standard site security feeds. Deployment is a connection, not a construction project — no re-cabling and no change to how the yard is monitored.",
+  ],
+  [
+    "Inference stays on site",
+    "Detection runs locally on a device on your property. In default mode video never leaves the site, and the records are held on Canadian infrastructure.",
+  ],
+  [
+    "An alert to the person who can act",
+    "The supervisor responsible for the area gets a text naming the site and zone. No dashboard to keep open, no app to install.",
+  ],
+  [
+    "Audit-ready by default",
+    "Every detection is a record. When a COR auditor or a WCB reviewer asks about a shift in March, there is something to open.",
+  ],
+];
+
 const DEPLOYMENT = [
   [
-    "01",
     "A call about your cameras",
-    "Which sites, which zones, what the existing feeds look like, who should receive alerts.",
+    "Which sites, which zones, what the existing feeds look like, and who should receive alerts.",
   ],
   [
-    "02",
+    "The risk assessment",
+    "A fixed-fee, time-boxed engagement that produces a documented compliance baseline — and tells us what the ongoing agreement should cost for your operation.",
+  ],
+  [
     "One site connected",
-    "We connect a device to the feeds for the pilot zone and confirm alerts land with the right supervisor.",
+    "We install the edge device against the feeds for the first zone and confirm alerts land with the right supervisor.",
   ],
   [
-    "03",
     "The log starts filling",
-    "You watch a week of real records accumulate from your own site, not a demo dataset.",
-  ],
-  [
-    "04",
-    "Decide from there",
-    "Expand to more zones and sites, or don't. The pilot has no commitment attached to it.",
+    "Real records accumulate from your own site, not a demo dataset, and the compliance baseline starts building itself.",
   ],
 ];
 
@@ -48,222 +62,227 @@ export default function HowItWorksPage() {
       <PageHero
         eyebrow="How it works"
         title="From an existing camera feed to a record that holds up."
-        lead="The whole system is one path with four stages. Nothing about it requires a new camera, a control room, or someone watching a screen."
+        lead="One path, four stages. None of it requires a control room or someone watching a screen."
       />
 
-      {/* ── The four stages ──────────────────────────────────── */}
-      <Band>
-        <Container className="py-[clamp(40px,6.5vw,72px)]">
-          <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] lg:gap-x-14">
-            {/* Vertical track with its travelling marker — desktop only. */}
-            <div
-              aria-hidden="true"
-              className="relative hidden border-l border-rule-strong lg:block"
-            >
-              <span className="animate-ac-drop absolute -left-1 top-0 h-[7px] w-[7px] bg-navy" />
+      {/* ═══ Stages 1 & 2 — cream-200 ═══════════════════════════ */}
+      <Band tone="cream-200">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
+          <Stage
+            label="Stage one · Input"
+            title="The cameras already on site"
+          >
+            <p>
+              All Clear reads the standard security feeds you already run. We
+              point the system at the cameras covering the zones where PPE
+              matters most — usually gates, laydown yards and active work
+              fronts.
+            </p>
+            <p>
+              What does get added is one small computer. It sits on your
+              property, typically in the trailer, and it is the only new
+              equipment involved. No new poles, no new cabling, and no change to
+              your existing surveillance setup.
+            </p>
+          </Stage>
+
+          <Stage
+            label="Stage two · Detection"
+            title="Inference on a local device"
+          >
+            <p>
+              A computer-vision model runs on that device and evaluates frames
+              as they arrive. It looks for a narrow, specific thing: a person in
+              frame without a hard hat, without a hi-vis vest, or without a
+              mask.
+            </p>
+            <p>
+              Frames are evaluated and dropped. What continues down the pipeline
+              is a description of an event, not the footage of it. It is not a
+              productivity or behaviour-monitoring tool — it watches for a small
+              set of safety conditions and nothing else.
+            </p>
+          </Stage>
+        </div>
+      </Band>
+
+      {/* ═══ Stage 3 — the record — cream, card + data table ════ */}
+      <Band tone="cream">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1fr] lg:gap-20">
+          <Stage label="Stage three · Record" title="A structured compliance entry">
+            <p>
+              Each detection is written to the database as a row with fixed
+              fields, so a period can be queried and exported rather than
+              reconstructed. This is the part that gets shown to a COR auditor,
+              an insurer, or a WCB reviewer.
+            </p>
+            <p>
+              Tamper-evidence is being built into this record through our Labs4
+              research placement this fall: each event is hash-chained to the
+              one before it, so a record that is altered breaks the chain and
+              the change is detectable. It is in development, and we will say so
+              until it has been validated.
+            </p>
+          </Stage>
+
+          <Card on="cream" className="p-0">
+            <div className="label px-6 py-5 text-accent">
+              Fields on every event
             </div>
-
-            <div className="flex min-w-0 flex-col">
-              <Stage
-                index="Stage 01"
-                kind="Input"
-                title="The cameras already on site"
-                className="pb-11"
-              >
-                <p className="mb-3.5 max-w-[66ch] text-[17px] font-light leading-[1.65] text-slate">
-                  All Clear reads the standard security feeds you already run.
-                  Deployment is a connection, not a construction project: we
-                  point the system at the cameras covering the zones where PPE
-                  matters most, usually gates, laydown yards and active work
-                  fronts.
-                </p>
-                <p className="max-w-[66ch] font-mono text-[12px] leading-[1.9] tracking-[0.04em] text-slate">
-                  No new poles. No new wiring. No change to your existing
-                  surveillance setup.
-                </p>
-              </Stage>
-
-              <Stage
-                index="Stage 02"
-                kind="Detection"
-                title="Inference on a local device"
-                className="border-t border-rule-soft py-[clamp(28px,5vw,48px)]"
-              >
-                <p className="mb-3.5 max-w-[66ch] text-[17px] font-light leading-[1.65] text-slate">
-                  A computer-vision model runs on hardware sitting on your
-                  property and evaluates frames as they arrive. It is looking
-                  for a specific, narrow thing: a person in frame without a hard
-                  hat, or without a hi-vis vest.
-                </p>
-                <p className="max-w-[66ch] text-[17px] font-light leading-[1.65] text-slate">
-                  Frames are evaluated and dropped. What continues down the
-                  pipeline is a description of an event, not the footage of it.
-                </p>
-              </Stage>
-
-              <Stage
-                index="Stage 03"
-                kind="Record"
-                title="A structured compliance entry"
-                className="border-t border-rule-soft py-[clamp(28px,5vw,48px)]"
-              >
-                <p className="mb-7 max-w-[66ch] text-[17px] font-light leading-[1.65] text-slate">
-                  Each detection is written to a database as a row with fixed
-                  fields, so a period can be queried and exported rather than
-                  reconstructed. This is the part that gets shown to an auditor,
-                  an insurer, or a WCB reviewer.
-                </p>
-
-                <div className="max-w-[640px] border border-rule-strong bg-cream-wash">
-                  <div className="label-mono border-b border-rule px-5 py-3.5">
-                    Fields on every event
-                  </div>
-                  <dl className="flex flex-col">
-                    {FIELDS.map(([term, detail], i) => (
-                      <div
-                        key={term}
-                        className={`flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6 ${
-                          i < FIELDS.length - 1
-                            ? "border-b border-rule-soft"
-                            : ""
-                        }`}
-                      >
-                        <dt className="font-mono text-[12px] uppercase tracking-[0.1em] text-slate">
-                          {term}
-                        </dt>
-                        <dd className="font-mono text-[13px] sm:text-right">
-                          {detail}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
+            <dl className="grid grid-cols-1 gap-px bg-rule">
+              {FIELDS.map(([term, detail]) => (
+                <div
+                  key={term}
+                  className="flex flex-col gap-1 bg-cream-50 px-6 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6"
+                >
+                  <dt className="label text-ink">{term}</dt>
+                  <dd className="text-[14px] text-ink-muted sm:text-right">
+                    {detail}
+                  </dd>
                 </div>
-              </Stage>
-
-              <Stage
-                index="Stage 04"
-                kind="Alert"
-                title="A text message to the person who can act"
-                className="border-t border-rule-soft pt-[clamp(28px,5vw,48px)]"
-              >
-                <p className="max-w-[66ch] text-[17px] font-light leading-[1.65] text-slate">
-                  The supervisor responsible for that area gets an SMS in under
-                  a minute, naming the site and the zone. There is no dashboard
-                  to keep open and no app to install, because the people who
-                  need this are outside, on radio, wearing gloves.
-                </p>
-              </Stage>
-            </div>
-          </div>
-        </Container>
+              ))}
+            </dl>
+          </Card>
+        </div>
       </Band>
 
-      {/* ── Modes ────────────────────────────────────────────── */}
-      <Band inverse>
-        <RailSection
-          label="Modes"
-          inverse
-          className="py-[clamp(48px,7.5vw,88px)]"
-        >
-          <h2 className="mb-6 max-w-[22ch] text-[clamp(26px,3.6vw,38px)] font-normal leading-[1.12] tracking-[-0.02em]">
-            Default mode keeps no imagery at all.
+      {/* ═══ Stage 4 — navy ════════════════════════════════════ */}
+      <Band tone="navy">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1fr] lg:gap-20">
+          <div>
+            <Eyebrow inverse className="mb-6">
+              Stage four · Alert
+            </Eyebrow>
+            <h2 className="text-[clamp(24px,3vw,34px)] font-medium leading-[1.2] tracking-[-0.02em]">
+              A text message to the person who can act
+            </h2>
+            <div className="measure mt-6 space-y-4 text-[16px] leading-[1.7] text-ink-inverse/85 sm:text-[17px]">
+              <p>
+                The supervisor responsible for that area gets an SMS naming the
+                site and the zone. There is no dashboard to keep open and no app
+                to install, because the people who need this are outside, on
+                radio, wearing gloves.
+              </p>
+              <p>
+                Prevention is a real benefit and it comes along for free. But
+                the record is what gets tested — by an auditor, by an insurer,
+                or by an investigation months later.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <Eyebrow inverse className="mb-6">
+              Modes
+            </Eyebrow>
+            <h2 className="text-[clamp(24px,3vw,34px)] font-medium leading-[1.2] tracking-[-0.02em]">
+              Default mode keeps no imagery at all.
+            </h2>
+            <div className="mt-8 grid grid-cols-1 gap-4">
+              <Card on="navy">
+                <div className="label mb-3 text-accent-on-navy">
+                  Default mode
+                </div>
+                <p className="text-[15px] leading-[1.7] text-ink-inverse/85">
+                  Frames are analyzed on site and discarded. Only the structured
+                  event is stored. No stills, no clips, no cloud storage of
+                  imagery.
+                </p>
+                <p className="mt-3 text-[13px] leading-[1.8] text-ink-inverse-muted">
+                  Camera &rarr; local inference &rarr; event record &rarr; SMS
+                </p>
+              </Card>
+              <Card on="navy">
+                <div className="label mb-3 text-accent-on-navy">
+                  Snapshot mode · opt in
+                </div>
+                <p className="text-[15px] leading-[1.7] text-ink-inverse/85">
+                  If your incident process needs a still attached to an event,
+                  snapshot mode can be enabled per site. It is off until you
+                  turn it on, and it is the only path where an image is
+                  retained.
+                </p>
+                <p className="mt-3 text-[13px] leading-[1.8] text-ink-inverse-muted">
+                  Camera &rarr; local inference &rarr; stored snapshot + event
+                  record &rarr; SMS
+                </p>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </Band>
+
+      {/* ═══ What it does — cream ══════════════════════════════ */}
+      <Band tone="cream">
+        <Eyebrow className="mb-6">What it does</Eyebrow>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+          {CAPABILITIES.map(([title, body]) => (
+            <Card key={title} on="cream">
+              <h3 className="mb-3 text-[18px] font-medium tracking-[-0.01em]">
+                {title}
+              </h3>
+              <p className="text-[15px] leading-[1.65] text-ink-muted">
+                {body}
+              </p>
+            </Card>
+          ))}
+        </div>
+      </Band>
+
+      {/* ═══ Deployment — cream-200 ════════════════════════════ */}
+      <Band tone="cream-200">
+        <div className="mb-10 max-w-[46ch]">
+          <Eyebrow className="mb-6">Getting started</Eyebrow>
+          <h2 className="text-[clamp(26px,3.4vw,40px)] font-medium leading-[1.15] tracking-[-0.02em]">
+            What deployment actually looks like.
           </h2>
-          <p className="mb-10 max-w-[64ch] text-[17px] font-light leading-[1.65] text-cream/80">
-            This is the setting a site runs on unless someone deliberately
-            changes it. It exists because the objection we hear first on an
-            industrial site is not about accuracy. It is about being
-            photographed at work.
-          </p>
-
-          <div className="grid grid-cols-1 border-t border-rule-inverse lg:grid-cols-2">
-            <div className="border-b border-rule-inverse-soft py-7 lg:border-b-0 lg:border-r lg:pr-8">
-              <div className="label-mono mb-3 text-slate-light">
-                Default mode
-              </div>
-              <p className="mb-3 text-[15px] font-light leading-[1.7] text-cream/85">
-                Frames are analyzed on site and discarded. Only the structured
-                event is stored. No stills, no clips, no cloud storage of
-                imagery.
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+          {DEPLOYMENT.map(([title, body]) => (
+            <Card key={title} on="cream-200">
+              <h3 className="mb-3 text-[18px] font-medium tracking-[-0.01em]">
+                {title}
+              </h3>
+              <p className="text-[15px] leading-[1.65] text-ink-muted">
+                {body}
               </p>
-              <p className="font-mono text-[11px] leading-[1.9] tracking-[0.06em] text-slate-light">
-                Camera &rarr; local inference &rarr; event record &rarr; SMS
-              </p>
-            </div>
-            <div className="py-7 lg:pl-8">
-              <div className="label-mono mb-3 text-slate-light">
-                Snapshot mode &mdash; opt in
-              </div>
-              <p className="mb-3 text-[15px] font-light leading-[1.7] text-cream/85">
-                If your incident process needs a still attached to an event,
-                snapshot mode can be enabled per site. It is off until you turn
-                it on, and it is the only path where an image is retained.
-              </p>
-              <p className="font-mono text-[11px] leading-[1.9] tracking-[0.06em] text-slate-light">
-                Camera &rarr; local inference &rarr; stored snapshot + event
-                record &rarr; SMS
-              </p>
-            </div>
-          </div>
-        </RailSection>
+            </Card>
+          ))}
+        </div>
       </Band>
 
-      {/* ── Deployment ───────────────────────────────────────── */}
-      <Band>
-        <RailSection
-          label="Deployment"
-          className="py-[clamp(40px,6.5vw,72px)]"
-        >
-          <HairlineGrid>
-            {DEPLOYMENT.map(([num, title, body]) => (
-              <HairlineCell key={num}>
-                <div className="label-mono mb-3 text-slate">{num}</div>
-                <h3 className="mb-2.5 text-[19px] font-medium">{title}</h3>
-                <p className="text-[15px] font-light leading-[1.65] text-slate">
-                  {body}
-                </p>
-              </HairlineCell>
-            ))}
-          </HairlineGrid>
-        </RailSection>
-      </Band>
-
-      {/* ── Closing CTA ──────────────────────────────────────── */}
-      <Band>
-        <Container className="flex flex-wrap items-end justify-between gap-x-14 gap-y-9 py-[clamp(52px,8vw,96px)]">
-          <h2 className="max-w-[22ch] text-[clamp(27px,4vw,42px)] font-normal leading-[1.1] tracking-[-0.02em]">
+      <Band tone="navy" size="loose">
+        <div className="flex flex-wrap items-end justify-between gap-x-16 gap-y-9">
+          <h2 className="max-w-[20ch] text-[clamp(28px,4vw,46px)] font-medium leading-[1.1] tracking-[-0.025em]">
             Point it at one camera and see the first record.
           </h2>
-          <SolidCTA href="/contact" className="whitespace-nowrap">
-            Request a pilot
-          </SolidCTA>
-        </Container>
+          <PrimaryCTA inverse href="/assessment" className="whitespace-nowrap">
+            Request an assessment
+          </PrimaryCTA>
+        </div>
       </Band>
     </>
   );
 }
 
 function Stage({
-  index,
-  kind,
+  label,
   title,
-  className,
   children,
 }: {
-  index: string;
-  kind: string;
+  label: string;
   title: string;
-  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className={className}>
-      <div className="label-mono mb-3.5 text-slate">
-        {index} &nbsp;&middot;&nbsp; {kind}
-      </div>
-      <h2 className="mb-3.5 text-[24px] font-medium tracking-[-0.015em] sm:text-[28px]">
+    <div>
+      <Eyebrow className="mb-6">{label}</Eyebrow>
+      <h2 className="text-[clamp(24px,3vw,34px)] font-medium leading-[1.2] tracking-[-0.02em]">
         {title}
       </h2>
-      {children}
-    </section>
+      <div className="measure mt-6 space-y-4 text-[16px] leading-[1.7] text-ink-muted sm:text-[17px]">
+        {children}
+      </div>
+    </div>
   );
 }

@@ -9,15 +9,13 @@ const SITE_LINKS = [
 
 export default function SiteFooter() {
   return (
-    <footer className="bg-navy text-cream">
-      <Container className="grid grid-cols-1 gap-10 pb-10 pt-[clamp(44px,6vw,64px)] sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr] lg:gap-12">
+    <footer className="bg-navy-900 text-ink-inverse">
+      <Container className="grid grid-cols-1 gap-10 pb-10 pt-[clamp(48px,6vw,72px)] sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr] lg:gap-16">
         <div>
-          <div className="mb-3.5 text-[15px] font-medium tracking-[0.18em]">
+          <div className="mb-4 text-[15px] font-medium tracking-[0.18em]">
             ALL CLEAR
           </div>
-          <p className="font-mono text-[11px] leading-[2] tracking-[0.06em] text-slate-light">
-            All Clear Inc. &mdash; 2819394 Alberta Corp.
-            <br />
+          <p className="text-[14px] leading-[1.9] text-ink-inverse-muted">
             Edmonton, Alberta, Canada
             <br />
             allclearsafety.ca
@@ -33,7 +31,7 @@ export default function SiteFooter() {
         </FooterColumn>
 
         <FooterColumn heading="Contact">
-          <FooterLink href="/contact">Request a pilot</FooterLink>
+          <FooterLink href="/assessment">Request an assessment</FooterLink>
           <FooterLink href="mailto:hello@allclearsafety.ca">
             hello@allclearsafety.ca
           </FooterLink>
@@ -41,10 +39,13 @@ export default function SiteFooter() {
         </FooterColumn>
       </Container>
 
-      <Container className="pb-[clamp(20px,5vw,48px)]">
-        <div className="border-t border-rule-inverse-faint pt-5 font-mono text-[10px] tracking-[0.1em] text-slate-light">
-          &copy; 2026 ALL CLEAR INC.
-        </div>
+      <Container className="pb-[clamp(24px,4vw,48px)]">
+        {/* The registered entity is a numbered Alberta corporation; the
+            "All Clear" trade name is not filed yet, so the legal name
+            appears here rather than in any headline. */}
+        <p className="text-[12px] leading-[1.8] text-ink-inverse-muted">
+          &copy; 2026 2819394 Alberta Corp., operating as All Clear.
+        </p>
       </Container>
     </footer>
   );
@@ -59,15 +60,12 @@ function FooterColumn({
 }) {
   return (
     <div className="flex flex-col">
-      <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.16em] text-slate-light">
-        {heading}
-      </div>
+      <div className="label mb-2 text-accent-on-navy">{heading}</div>
       {children}
     </div>
   );
 }
 
-/* Footer rows are 44px tall so they are tappable, not just clickable. */
 function FooterLink({
   href,
   children,
@@ -75,11 +73,10 @@ function FooterLink({
   href: string;
   children: React.ReactNode;
 }) {
-  const external = href.startsWith("mailto:");
   const className =
-    "flex min-h-[44px] items-center text-[14px] text-cream transition-colors hover:text-slate-light";
+    "flex min-h-[44px] items-center text-[14px] text-ink-inverse transition-colors hover:text-accent-on-navy";
 
-  if (external) {
+  if (href.startsWith("mailto:")) {
     return (
       <a href={href} className={className}>
         {children}

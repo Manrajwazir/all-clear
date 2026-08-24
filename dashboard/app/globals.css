@@ -2,47 +2,74 @@
 
 /* =============================================================
    All Clear — marketing site tokens
-   Cream / navy palette, ported from the approved design.
+
+   One typeface (Roboto). Sections are separated by a change of
+   SURFACE, not by hairline rules — see the surface ladder below.
    ============================================================= */
 :root {
-  /* Surfaces */
-  --cream: #eae0cf;
-  --cream-wash: rgba(255, 255, 255, 0.34);
+  /* --- Surface ladder: three creams, three navies -----------
+     Adjacent sections step along this ladder instead of being
+     divided by a rule. Cards sit one step lighter than the band
+     they are on, which is what makes them read as raised.       */
+  --cream-50: #f5efe4; /* raised cards on cream */
+  --cream: #eae0cf; /* base page */
+  --cream-200: #ded2bc; /* alternating band */
 
-  /* Ink */
-  --navy: #111844;
-  --slate: #4b5694;
-  --slate-light: #7288ae;
+  --navy-700: #1c2559; /* raised cards on navy */
+  --navy: #111844; /* inverted band */
+  --navy-900: #0b1030; /* footer, deepest */
 
-  /* Hairlines on cream */
-  --rule: rgba(17, 24, 68, 0.18);
-  --rule-strong: rgba(17, 24, 68, 0.28);
-  --rule-soft: rgba(17, 24, 68, 0.14);
-  --rule-field: rgba(17, 24, 68, 0.3);
+  /* --- Ink ---------------------------------------------------
+     ink-muted replaces the old slate for body copy: 6.93:1 on
+     cream against the old 5.25:1, which read washed out at the
+     small sizes this site uses.                                 */
+  --ink: #111844;
+  --ink-muted: #3b4675;
+  --ink-faint: #5a6595; /* captions only, never body copy */
 
-  /* Hairlines on navy */
-  --rule-inverse: rgba(234, 224, 207, 0.28);
-  --rule-inverse-soft: rgba(234, 224, 207, 0.22);
-  --rule-inverse-faint: rgba(234, 224, 207, 0.18);
+  /* On navy. The old #7288AE fails AA on --navy-700 (4.01:1). */
+  --ink-inverse: #eae0cf;
+  --ink-inverse-muted: #8fa3c4;
+
+  /* --- Accent: a saturated version of the existing slate ----- */
+  --accent: #2f49b8;
+  --accent-hover: #24399a;
+  --accent-on-navy: #8fa3c4;
+
+  /* --- Hairlines --------------------------------------------
+     Deliberately few. Structural separation is done with
+     surfaces; these are for inside data tables only.            */
+  --rule: rgba(17, 24, 68, 0.14);
+  --rule-strong: rgba(17, 24, 68, 0.24);
+  --rule-inverse: rgba(234, 224, 207, 0.16);
+  --rule-inverse-strong: rgba(234, 224, 207, 0.26);
 }
 
 @theme inline {
+  --color-cream-50: var(--cream-50);
   --color-cream: var(--cream);
-  --color-cream-wash: var(--cream-wash);
+  --color-cream-200: var(--cream-200);
+
+  --color-navy-700: var(--navy-700);
   --color-navy: var(--navy);
-  --color-slate: var(--slate);
-  --color-slate-light: var(--slate-light);
+  --color-navy-900: var(--navy-900);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-inverse: var(--ink-inverse);
+  --color-ink-inverse-muted: var(--ink-inverse-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-on-navy: var(--accent-on-navy);
 
   --color-rule: var(--rule);
   --color-rule-strong: var(--rule-strong);
-  --color-rule-soft: var(--rule-soft);
-  --color-rule-field: var(--rule-field);
   --color-rule-inverse: var(--rule-inverse);
-  --color-rule-inverse-soft: var(--rule-inverse-soft);
-  --color-rule-inverse-faint: var(--rule-inverse-faint);
+  --color-rule-inverse-strong: var(--rule-inverse-strong);
 
   --font-sans: var(--font-roboto), Helvetica, Arial, sans-serif;
-  --font-mono: var(--font-roboto-mono), ui-monospace, monospace;
 }
 
 /* =============================================================
@@ -51,28 +78,27 @@
 html {
   background: var(--cream);
   scroll-behavior: smooth;
-  /* Header is 68px on mobile, 76px from sm up — keep anchor targets clear of it */
-  scroll-padding-top: 88px;
+  scroll-padding-top: 96px;
 }
 
 body {
   background: var(--cream);
-  color: var(--navy);
+  color: var(--ink);
   font-family: var(--font-roboto), Helvetica, Arial, sans-serif;
+  /* 400, not 300. Light weight was half the readability problem. */
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   text-wrap: pretty;
-  /* Stops iOS Safari inflating type in the rotated-to-landscape case */
   -webkit-text-size-adjust: 100%;
 }
 
 ::selection {
-  background: var(--navy);
+  background: var(--accent);
   color: var(--cream);
 }
 
-/* Visible keyboard focus everywhere — the default ring is invisible on cream */
 :focus-visible {
-  outline: 2px solid var(--navy);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -80,17 +106,30 @@ body {
    Utilities
    ============================================================= */
 
-/* The uppercase mono label used for section numbers, eyebrows, field labels */
-.label-mono {
-  font-family: var(--font-roboto-mono), ui-monospace, monospace;
+/* The recurring small uppercase label. Roboto, not a mono face —
+   the tracking and weight carry it instead of a second family. */
+.label {
   font-size: 11px;
-  letter-spacing: 0.14em;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
+/* Figures that need to line up in a column (timestamps, IDs,
+   counts) without switching typeface. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Prose measure. Structure spans the full 1440 grid; running text
+   never exceeds this, so wide layouts stay readable. */
+.measure {
+  max-width: 68ch;
+}
+
 /* =============================================================
-   Motion — the two pipeline indicators from the design.
-   Both are decorative; both stop under reduced-motion.
+   Motion — one decorative marker, off under reduced-motion.
    ============================================================= */
 @keyframes ac-run {
   0% { left: 0%; opacity: 0; }
@@ -99,28 +138,14 @@ body {
   100% { left: 100%; opacity: 0; }
 }
 
-@keyframes ac-drop {
-  0% { top: 0%; opacity: 0; }
-  12% { opacity: 1; }
-  88% { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
-}
-
 .animate-ac-run {
   animation: ac-run 4.6s linear infinite;
 }
 
-.animate-ac-drop {
-  animation: ac-drop 5s linear infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+  html { scroll-behavior: auto; }
 
-  .animate-ac-run,
-  .animate-ac-drop {
+  .animate-ac-run {
     animation: none;
     opacity: 0;
   }

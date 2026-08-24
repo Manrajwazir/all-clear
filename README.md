@@ -26,11 +26,12 @@ dashboard, and the Supabase/S3/Twilio integrations all live there.
 | `/` | Home |
 | `/how-it-works` | The four-stage pipeline, modes, deployment |
 | `/about` | Who we are, research and support |
-| `/contact` | Pilot request form |
+| `/assessment` | The paid risk assessment — the conversion page |
+| `/contact` | General enquiries only |
 | `/privacy` | Privacy policy |
 
-The contact form is presentational only — submission is not wired up yet. The
-working path is the `hello@allclearsafety.ca` link beside the button.
+The assessment form is presentational only — submission is not wired up yet.
+The working path is the `hello@allclearsafety.ca` link beside the button.
 
 ---
 
@@ -52,7 +53,9 @@ time.
 ## Stack
 
 Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4. Five
-dependencies total; no data layer, no UI kit, no icon package.
+dependencies total; no data layer, no UI kit, no icon package. One typeface
+(Roboto) and a six-step cream/navy surface ladder — sections are separated by
+a change of surface rather than by dividing rules.
 
 ## Deployment
 

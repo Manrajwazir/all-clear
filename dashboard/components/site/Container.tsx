@@ -1,8 +1,9 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The single content measure used across every page: 1120px max,
- * with gutters that shrink to 20px on a phone and open to 48px on desktop.
+ * The content grid. Wider than the old 1120 so layouts reach across
+ * the screen; running text is held to `.measure` separately rather
+ * than by squeezing the whole page.
  */
 export default function Container({
   className,
@@ -14,7 +15,7 @@ export default function Container({
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1120px] px-[clamp(20px,5vw,48px)]",
+        "mx-auto w-full max-w-[1440px] px-[clamp(20px,5vw,64px)]",
         className,
       )}
     >
