@@ -195,6 +195,14 @@ converting to paid" as the default entry point. The approved three-sentence
 public pricing description is on `/assessment`; use it verbatim. Do not publish
 the ~$900/unit figure — ADR 0010 keeps that as a verbal answer when pressed.
 
+**Do not list what the assessment delivers.** ADR 0009 states plainly that "the
+entry engagement needs a defined deliverable and a defined duration before it
+can be sold," and that work is not done. A "what you get" section listing named
+deliverables was written and then removed on 2026-08-23 for exactly this
+reason: it made specific public promises about a product whose scope nobody has
+signed off. Say it produces a documented compliance baseline, which is approved
+language, and stop there until the deliverable is actually defined.
+
 **WCB / COR / PIR.** This is the differentiating wedge and it belongs on the
 front page. Only these figures are cleared for public use:
 
