@@ -5,7 +5,7 @@ import { PrimaryCTA, MailLink } from "@/components/site/Buttons";
 export const metadata = {
   title: "Contact",
   description:
-    "Please reachReach All Clear in Edmonton, Alberta, at hello@allclearsafety.ca. To scope a site or get a quote, request a safety risk assessment.",
+    "Reach All Clear in Edmonton, Alberta, at hello@allclearsafety.ca. To scope a site or get a quote, request a safety risk assessment.",
 };
 
 export default function ContactPage() {
