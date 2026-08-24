@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function NotFound() {
   return (
-    <Band tone="cream" size="loose">
+    <Band tone="cream" size="loose" reveal={false}>
       <Eyebrow className="mb-8">Error 404</Eyebrow>
       <h1 className="max-w-[18ch] text-[clamp(32px,5.6vw,60px)] font-medium leading-[1.05] tracking-[-0.025em]">
         That page isn&rsquo;t here.

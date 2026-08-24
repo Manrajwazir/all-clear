@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
+import ScrollReveal from "@/components/site/ScrollReveal";
 import "./globals.css";
 
 /* One typeface across the whole site. Small labels are set by size,
@@ -40,6 +41,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <ScrollReveal />
         <SiteHeader />
         <main id="main" className="flex-1">
           {children}

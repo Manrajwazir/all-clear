@@ -11,7 +11,7 @@ export default function HomePage() {
   return (
     <>
       {/* ═══ 1. Hero — cream base ═══════════════════════════════ */}
-      <Band tone="cream" size="loose">
+      <Band tone="cream" size="loose" reveal={false}>
         <Eyebrow className="mb-8">
           Computer-vision PPE compliance &nbsp;·&nbsp; Alberta worksites
         </Eyebrow>

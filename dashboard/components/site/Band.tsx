@@ -30,6 +30,7 @@ export default function Band({
   tone = "cream",
   size = "normal",
   bleed = false,
+  reveal = true,
   className,
   children,
 }: {
@@ -37,11 +38,20 @@ export default function Band({
   size?: keyof typeof SIZES;
   /** Skip the Container — for sections that genuinely run edge to edge. */
   bleed?: boolean;
+  /**
+   * Fade in on scroll. Turn off for anything above the fold, and for any
+   * band containing a `position: sticky` child — the transform used by
+   * the reveal would become its containing block mid-animation.
+   */
+  reveal?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className={cn(TONES[tone], SIZES[size], className)}>
+    <section
+      data-reveal={reveal ? "" : undefined}
+      className={cn(TONES[tone], SIZES[size], className)}
+    >
       {bleed ? children : <Container>{children}</Container>}
     </section>
   );

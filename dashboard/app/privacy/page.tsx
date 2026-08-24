@@ -43,7 +43,9 @@ export default function PrivacyPage() {
         lead="This page explains how 2819394 Alberta Corp., operating as All Clear, handles information from visitors to this website and from customers running our system on their sites."
       />
 
-      <Band tone="cream-200">
+      {/* No reveal: the contents rail inside is position:sticky, which a
+          transform on the section would break. */}
+      <Band tone="cream-200" reveal={false}>
         <div className="grid grid-cols-1 items-start gap-y-10 lg:grid-cols-[240px_1fr] lg:gap-x-20">
           <nav aria-label="Contents" className="lg:sticky lg:top-28">
             <Eyebrow className="mb-3">Contents</Eyebrow>
@@ -237,8 +239,12 @@ function Clause({
   children: React.ReactNode;
 }) {
   return (
+    // Reveal is applied per clause rather than to the whole band: the
+    // contents rail beside it is position:sticky, and a transform on a
+    // shared ancestor would become its containing block and kill it.
     <section
       id={id}
+      data-reveal=""
       className={first ? "pb-10" : last ? "pt-10" : "py-10"}
     >
       <h2 className="mb-4 text-[21px] font-medium tracking-[-0.015em] sm:text-[25px]">
