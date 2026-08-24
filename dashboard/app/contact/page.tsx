@@ -5,7 +5,7 @@ import { PrimaryCTA, MailLink } from "@/components/site/Buttons";
 export const metadata = {
   title: "Contact",
   description:
-    "Reach All Clear in Edmonton, Alberta — hello@allclearsafety.ca. For a pilot or a quote, request a safety risk assessment.",
+    "Reach All Clear in Edmonton, Alberta, at hello@allclearsafety.ca. To scope a site or get a quote, request a safety risk assessment.",
 };
 
 export default function ContactPage() {
@@ -75,8 +75,8 @@ export default function ContactPage() {
             </h2>
             <p className="measure mt-6 text-[16px] leading-[1.7] text-ink-inverse/85 sm:text-[17px]">
               The assessment form asks the handful of things we need to scope
-              properly — site type, existing cameras, COR status — so the first
-              call is useful rather than exploratory.
+              properly, like site type, existing cameras and COR status, so the
+              first call is useful rather than exploratory.
             </p>
           </div>
           <div className="flex lg:justify-end">

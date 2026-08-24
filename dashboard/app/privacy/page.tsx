@@ -80,8 +80,8 @@ export default function PrivacyPage() {
                 and a confidence score.
               </P>
               <Note>
-                [Placeholder &mdash; final legal language to be supplied,
-                including any website analytics disclosure.]
+                [Placeholder: final legal language to be supplied, including any
+                website analytics disclosure.]
               </Note>
             </Clause>
 
@@ -182,7 +182,7 @@ export default function PrivacyPage() {
                 review asks for a past period.
               </P>
               <Note>
-                [Placeholder &mdash; specific retention periods to be supplied.]
+                [Placeholder: specific retention periods to be supplied.]
               </Note>
             </Clause>
 

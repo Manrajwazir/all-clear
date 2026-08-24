@@ -24,7 +24,7 @@ const SITE_TYPES = [
 ];
 
 const CAMERA_STATES = [
-  "Yes — IP cameras already installed",
+  "Yes, IP cameras already installed",
   "Some zones covered, not all",
   "No cameras on site yet",
   "Not sure",

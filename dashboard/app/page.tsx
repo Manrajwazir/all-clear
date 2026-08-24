@@ -2,9 +2,9 @@ import Band, { Card, Eyebrow } from "@/components/site/Band";
 import { PrimaryCTA, SecondaryCTA, ArrowLink } from "@/components/site/Buttons";
 
 export const metadata = {
-  title: "All Clear — automated PPE compliance records for Alberta sites",
+  title: "All Clear | Computer-vision PPE compliance for Alberta worksites",
   description:
-    "Most operators run safe sites but cannot prove it. All Clear turns the cameras already on your worksite into a timestamped PPE compliance record — the documentation COR certification and your WCB standing depend on.",
+    "All Clear reads the cameras already on your worksite, detects a missing hard hat or hi-vis vest, and writes each one to a timestamped compliance record. The documentation COR certification and your WCB standing depend on.",
 };
 
 export default function HomePage() {
@@ -13,20 +13,20 @@ export default function HomePage() {
       {/* ═══ 1. Hero — cream base ═══════════════════════════════ */}
       <Band tone="cream" size="loose">
         <Eyebrow className="mb-8">
-          PPE compliance recording &nbsp;·&nbsp; Alberta heavy industry
+          Computer-vision PPE compliance &nbsp;·&nbsp; Alberta worksites
         </Eyebrow>
 
         <div className="grid grid-cols-1 items-end gap-y-10 lg:grid-cols-[1.15fr_1fr] lg:gap-x-20">
           <h1 className="text-[clamp(38px,6.4vw,76px)] font-medium leading-[1.02] tracking-[-0.03em]">
-            Most operators run safe sites. Few can prove it.
+            Proof your worksite was safe, before anyone asks for it.
           </h1>
 
           <div className="lg:pb-2">
             <p className="text-[17px] leading-[1.65] text-ink-muted sm:text-[19px]">
-              In Alberta, proof is money. COR certification needs documented,
-              audited evidence that a safety system is running, and the PIR
-              rebate needs COR. All Clear builds that record automatically, off
-              the cameras already on your site.
+              All Clear reads the security cameras already on your site, detects
+              a missing hard hat or hi-vis vest, and writes each one to a
+              timestamped compliance record. That record is what a COR audit
+              asks for, and what your WCB standing rests on.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <PrimaryCTA href="/assessment">Request an assessment</PrimaryCTA>
@@ -42,13 +42,14 @@ export default function HomePage() {
           <div>
             <Eyebrow className="mb-6">Why documentation is the product</Eyebrow>
             <h2 className="text-[clamp(26px,3.4vw,40px)] font-medium leading-[1.15] tracking-[-0.02em]">
-              Safety performance shows up on the balance sheet.
+              Most operators run safe sites. Few can prove it.
             </h2>
             <div className="measure mt-6 space-y-4 text-[16px] leading-[1.7] text-ink-muted sm:text-[17px]">
               <p>
-                Every Alberta operator pays a WCB premium, and that premium
-                moves on claims history and on whether the company can produce
-                audited proof that a safety system is genuinely in place. COR
+                In Alberta, safety performance shows up on the balance sheet.
+                Every operator pays a WCB premium, and that premium moves on
+                claims history and on whether the company can produce audited
+                proof that a safety system is genuinely in place. COR
                 certification requires that proof. The PIR rebate requires COR.
               </p>
               <p>
@@ -78,18 +79,8 @@ export default function HomePage() {
                 Up&nbsp;to&nbsp;20%
               </div>
               <p className="mt-4 text-[15px] leading-[1.6] text-ink-muted">
-                Off the industry rate through PIR — gated on holding a COR and
-                on improving performance, not on paperwork alone.
-              </p>
-            </Card>
-            <Card on="cream-200" className="sm:col-span-2">
-              <div className="tabular text-[clamp(28px,3vw,36px)] font-medium leading-none tracking-[-0.02em]">
-                ~7.5 hours a week
-              </div>
-              <p className="mt-4 text-[15px] leading-[1.6] text-ink-muted">
-                Spent on manual safety documentation, according to one Alberta
-                project manager we interviewed. The burden scales with work
-                volume.
+                Off the industry rate through PIR. Gated on holding a COR and on
+                improving performance, not on paperwork alone.
               </p>
             </Card>
           </div>
@@ -115,7 +106,7 @@ export default function HomePage() {
             <Step
               label="Existing cameras"
               title="The feed you already run"
-              body="All Clear reads the standard security cameras covering the zones where PPE matters — gates, laydown yards, active work fronts. No rip-and-replace."
+              body="All Clear reads the standard security cameras covering the zones where PPE matters: gates, laydown yards, active work fronts. No rip-and-replace."
             />
             <Step
               label="On-site inference"
@@ -155,7 +146,7 @@ export default function HomePage() {
                 On a unionized industrial site, &ldquo;we are not filming
                 you&rdquo; is not a footnote. It is usually the first question
                 asked in the room. Snapshot mode exists for operators whose
-                incident process needs a still attached to an event — it is off
+                incident process needs a still attached to an event. It is off
                 until you deliberately turn it on, per site, and it is the only
                 configuration where an image is kept.
               </p>
@@ -217,7 +208,7 @@ export default function HomePage() {
                 Tamper-evidence is part of that placement. Each event is
                 hash-chained to the one before it, so a modified record breaks
                 the chain and is detectable. That mechanism is being implemented
-                and validated this fall — we describe it as in development
+                and validated this fall, and we describe it as in development
                 because that is what it is.
               </p>
             </div>

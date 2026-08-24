@@ -21,7 +21,7 @@ const FIELDS = [
 const CAPABILITIES = [
   [
     "Runs on the cameras you have",
-    "Standard site security feeds. Deployment is a connection, not a construction project — no re-cabling and no change to how the yard is monitored.",
+    "Standard site security feeds. Deployment is a connection, not a construction project. No re-cabling, and no change to how the yard is monitored.",
   ],
   [
     "Inference stays on site",
@@ -44,7 +44,7 @@ const DEPLOYMENT = [
   ],
   [
     "The risk assessment",
-    "A fixed-fee, time-boxed engagement that produces a documented compliance baseline — and tells us what the ongoing agreement should cost for your operation.",
+    "A fixed-fee, time-boxed engagement that produces a documented compliance baseline, and tells us what the ongoing agreement should cost for your operation.",
   ],
   [
     "One site connected",
@@ -75,8 +75,7 @@ export default function HowItWorksPage() {
             <p>
               All Clear reads the standard security feeds you already run. We
               point the system at the cameras covering the zones where PPE
-              matters most — usually gates, laydown yards and active work
-              fronts.
+              matters most: usually gates, laydown yards and active work fronts.
             </p>
             <p>
               What does get added is one small computer. It sits on your
@@ -99,8 +98,8 @@ export default function HowItWorksPage() {
             <p>
               Frames are evaluated and dropped. What continues down the pipeline
               is a description of an event, not the footage of it. It is not a
-              productivity or behaviour-monitoring tool — it watches for a small
-              set of safety conditions and nothing else.
+              productivity or behaviour-monitoring tool. It watches for a small set
+              of safety conditions and nothing else.
             </p>
           </Stage>
         </div>
@@ -165,8 +164,8 @@ export default function HowItWorksPage() {
               </p>
               <p>
                 Prevention is a real benefit and it comes along for free. But
-                the record is what gets tested — by an auditor, by an insurer,
-                or by an investigation months later.
+                the record is what gets tested: by an auditor, by an insurer, or by
+                an investigation months later.
               </p>
             </div>
           </div>

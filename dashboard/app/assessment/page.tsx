@@ -23,7 +23,7 @@ const DELIVERABLES = [
   ],
   [
     "A specific quote",
-    "The assessment concludes with a real number for the ongoing agreement — not a range, and not negotiated later during deployment.",
+    "The assessment concludes with a real number for the ongoing agreement. Not a range, and not negotiated later during deployment.",
   ],
 ];
 
@@ -67,7 +67,7 @@ export default function AssessmentPage() {
             <Card on="cream">
               <div className="label mb-3 text-accent">How pricing works</div>
               <p className="text-[15px] leading-[1.7] text-ink-muted">
-                We start with the paid safety risk assessment — a fixed-fee
+                We start with the paid safety risk assessment: a fixed-fee
                 engagement that produces a documented compliance baseline for
                 your sites. From there it&rsquo;s equipment and setup upfront,
                 then an annual subscription priced to your operation&rsquo;s

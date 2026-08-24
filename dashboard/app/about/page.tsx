@@ -77,11 +77,11 @@ export default function AboutPage() {
               </p>
               <p>
                 That matters more than it sounds. The mechanics this product
-                turns on — WCB experience rating, COR certification, the PIR
-                rebate, PIPA — are provincial. The best-funded companies in this
-                category are American, and the model the largest of them runs
-                on, bundling safety technology into workers&rsquo; compensation
-                premiums, is not legally possible in Canada.
+                turns on are provincial: WCB experience rating, COR
+                certification, the PIR rebate, PIPA. The best-funded companies
+                in this category are American, and the model the largest of them
+                runs on, bundling safety technology into workers&rsquo;
+                compensation premiums, is not legally possible in Canada.
               </p>
             </div>
           </div>
