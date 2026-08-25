@@ -104,6 +104,11 @@ export async function POST(request: Request) {
       new SendEmailCommand({
         FromEmailAddress: FROM,
         Destination: { ToAddresses: [TO] },
+        // Bounce and complaint notices go here rather than to the From
+        // address, which SES would use by default. FROM is a send-only label
+        // with no mailbox behind it, so a notice sent there would be lost and
+        // a failed delivery would look like a success.
+        FeedbackForwardingEmailAddress: TO,
         // Set from the validated address so a reply goes to the prospect.
         // validate() has already stripped CR/LF, so this cannot carry a
         // second header into the message.

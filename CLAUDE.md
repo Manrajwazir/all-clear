@@ -188,6 +188,14 @@ verified too, which is fine because it is our own address. The `allclear-app`
 IAM user is scoped to S3 only, so `ses:SendEmail` needs adding to its policy or
 a separate principal creating.
 
+**`noreply@` is a send-only label with no mailbox behind it.** Verifying the
+whole `allclearsafety.ca` domain in SES is what authorises sending as it, so it
+does not exist in Google Workspace and does not need to. The one consequence is
+that SES would otherwise mail bounce and complaint notices to the From address
+and they would be lost, so the route sets `FeedbackForwardingEmailAddress` to
+`ASSESSMENT_TO_EMAIL` explicitly. If the From address ever changes, keep that
+property pointed at a real mailbox.
+
 ### The protections, and why each is there
 
 The risk here is not data theft; there is nothing stored to steal. It is the
