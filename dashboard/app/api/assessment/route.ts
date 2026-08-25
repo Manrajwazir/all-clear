@@ -90,7 +90,11 @@ export async function POST(request: Request) {
   if (!FROM || !TO) {
     // Misconfiguration, not the submitter's problem. Say so plainly rather
     // than accepting the request and dropping it.
-    console.error("Assessment form: ASSESSMENT_FROM_EMAIL/TO_EMAIL not set");
+    const missing = [
+      !FROM && "ASSESSMENT_FROM_EMAIL",
+      !TO && "ASSESSMENT_TO_EMAIL",
+    ].filter(Boolean);
+    console.error(`Assessment form: not configured. Missing ${missing.join(", ")}`);
     return fail(
       "We couldn't send that just now. Please email hello@allclearsafety.ca.",
       500,
@@ -124,6 +128,29 @@ export async function POST(request: Request) {
       }),
     );
   } catch (error) {
+    // The SDK's failure for absent credentials is a generic "could not load
+    // credentials from any providers", which does not say whether the value
+    // is missing, misspelled, or simply not deployed yet. Say which.
+    if ((error as { name?: string })?.name === "CredentialsProviderError") {
+      const unset = [
+        !ACCESS_KEY_ID && "SES_ACCESS_KEY_ID",
+        !SECRET_ACCESS_KEY && "SES_SECRET_ACCESS_KEY",
+      ].filter(Boolean);
+      console.error(
+        unset.length > 0
+          ? `Assessment form: no AWS credentials. ${unset.join(" and ")} ` +
+              `not set in this environment. Note the SES_ prefix, not AWS_. ` +
+              `If they are set in Vercel, the running deployment predates ` +
+              `them: redeploy.`
+          : `Assessment form: no AWS credentials, though SES_ACCESS_KEY_ID ` +
+              `and SES_SECRET_ACCESS_KEY are both set. Check for a blank ` +
+              `value or whitespace.`,
+      );
+      return fail(
+        "We couldn't send that just now. Please email hello@allclearsafety.ca.",
+        500,
+      );
+    }
     console.error("Assessment form: SES send failed", error);
     return fail(
       "We couldn't send that just now. Please email hello@allclearsafety.ca.",
