@@ -12,15 +12,16 @@ const LAST_UPDATED = "August 2026";
 
 const CONTENTS = [
   ["s1", "What we collect"],
-  ["s2", "Imagery and default mode"],
-  ["s3", "Workers and PIPA"],
-  ["s4", "How we use it"],
-  ["s5", "Who we share it with"],
-  ["s6", "Where it is stored"],
-  ["s7", "Retention"],
-  ["s8", "Your requests"],
-  ["s9", "Changes"],
-  ["s10", "Contact"],
+  ["s2", "Website analytics"],
+  ["s3", "Imagery and default mode"],
+  ["s4", "Workers and PIPA"],
+  ["s5", "How we use it"],
+  ["s6", "Who we share it with"],
+  ["s7", "Where it is stored"],
+  ["s8", "Retention"],
+  ["s9", "Your requests"],
+  ["s10", "Changes"],
+  ["s11", "Contact"],
 ];
 
 const PROCESSORS = [
@@ -29,6 +30,7 @@ const PROCESSORS = [
   ["SMS provider", "Delivering alerts to supervisors"],
   ["Email provider", "Delivering website form submissions to us"],
   ["Rate-limiting provider", "Short-lived abuse prevention on our forms"],
+  ["Analytics provider", "Measuring how this website is used"],
 ];
 
 export default function PrivacyPage() {
@@ -91,7 +93,36 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s2" heading="Imagery and default mode">
+            <Clause id="s2" heading="Website analytics">
+              <P>
+                This website uses PostHog, a product analytics service, to
+                measure how the site is read. It records the pages you visit,
+                interactions with elements on a page such as which buttons are
+                pressed, and technical details: your browser and operating
+                system, your screen size, the page that referred you, and an
+                approximate location derived from your IP address.
+              </P>
+              <P>
+                To count repeat visits from the same browser as one visitor, it
+                stores a randomly generated identifier in your browser using a
+                cookie and local storage. That identifier is not your name. It
+                becomes connected to you only if you separately send us a form
+                with your details in it.
+              </P>
+              <P>
+                We use this to see which pages get read and where people stop
+                reading. We do not use it for advertising, we do not build
+                profiles for sale, and we do not share it with anyone beyond the
+                provider running the service for us.
+              </P>
+              <P last>
+                A browser extension that blocks tracking scripts, or a browser
+                setting that does the same, will stop this collection. The rest
+                of the site works normally without it.
+              </P>
+            </Clause>
+
+            <Clause id="s3" heading="Imagery and default mode">
               <P>
                 In default mode, All Clear collects no imagery. Camera frames
                 are analyzed on a device located on the customer&rsquo;s site
@@ -107,7 +138,7 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s3" heading="Workers and PIPA">
+            <Clause id="s4" heading="Workers and PIPA">
               <P>
                 We want to be precise about something that is easy to overstate.
                 Storing no imagery does not automatically make an event record
@@ -125,7 +156,7 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s4" heading="How we use information">
+            <Clause id="s5" heading="How we use information">
               <P>
                 Contact information is used to reply to your inquiry, arrange an
                 assessment, and follow up about it. We do not sell it, and we do
@@ -139,7 +170,7 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s5" heading="Who we share it with">
+            <Clause id="s6" heading="Who we share it with">
               <P>
                 We use a small number of third-party service providers to
                 operate the product. They process data on our instructions and
@@ -172,21 +203,29 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s6" heading="Where it is stored">
+            <Clause id="s7" heading="Where it is stored">
               <P>
                 Compliance records and any snapshots taken in snapshot mode are
                 stored on Canadian infrastructure, in a Canadian region. Video
                 itself does not leave the customer&rsquo;s site in default mode,
                 because it is analyzed on the device there and discarded.
               </P>
-              <P last>
+              <P>
                 Website form submissions are sent through a Canadian region of
                 our email provider and then live in our mailbox like any other
                 message.
               </P>
+              <P last>
+                Website analytics are the exception. That data is processed on
+                servers in the United States, which means it leaves Canada and
+                is subject to the laws of that country, including lawful access
+                requests by United States authorities. It covers how this
+                website is browsed and nothing else: no compliance records, no
+                imagery, and no customer site data is sent there.
+              </P>
             </Clause>
 
-            <Clause id="s7" heading="How long we keep it">
+            <Clause id="s8" heading="How long we keep it">
               <P>
                 Compliance records are retained for the period agreed with the
                 customer, since their value is being available when an audit or
@@ -197,7 +236,7 @@ export default function PrivacyPage() {
               </Note>
             </Clause>
 
-            <Clause id="s8" heading="Access, correction and deletion">
+            <Clause id="s9" heading="Access, correction and deletion">
               <P last>
                 You can ask us what information we hold about you, ask us to
                 correct it, or ask us to delete it. Write to the address in the
@@ -205,14 +244,14 @@ export default function PrivacyPage() {
               </P>
             </Clause>
 
-            <Clause id="s9" heading="Changes to this policy">
+            <Clause id="s10" heading="Changes to this policy">
               <P last>
                 If this policy changes, we will update this page and revise the
                 date at the top of it.
               </P>
             </Clause>
 
-            <Clause id="s10" heading="Contact us" last>
+            <Clause id="s11" heading="Contact us" last>
               <P>
                 For a privacy question or a request about your information:
               </P>
