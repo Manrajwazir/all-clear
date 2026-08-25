@@ -15,7 +15,25 @@ export const dynamic = "force-dynamic";
 
 const FROM = process.env.ASSESSMENT_FROM_EMAIL;
 const TO = process.env.ASSESSMENT_TO_EMAIL;
-const REGION = process.env.AWS_REGION ?? "ca-central-1";
+
+// Deliberately not AWS_REGION / AWS_ACCESS_KEY_ID. Vercel functions run on
+// Lambda, which presets those names to the function's own region and to
+// placeholder credentials that grant nothing. Reading them would silently win
+// over any default and point this client at the wrong region, so the SES
+// config gets its own namespace and is passed to the client explicitly.
+const REGION = process.env.SES_REGION || "ca-central-1";
+const ACCESS_KEY_ID = process.env.SES_ACCESS_KEY_ID;
+const SECRET_ACCESS_KEY = process.env.SES_SECRET_ACCESS_KEY;
+
+const ses = new SESv2Client({
+  region: REGION,
+  // Falling through to the default credential chain keeps `aws configure`
+  // and SSO profiles working for local development.
+  credentials:
+    ACCESS_KEY_ID && SECRET_ACCESS_KEY
+      ? { accessKeyId: ACCESS_KEY_ID, secretAccessKey: SECRET_ACCESS_KEY }
+      : undefined,
+});
 
 /** Same shape for every failure the submitter is allowed to see. */
 function fail(message: string, status: number) {
@@ -82,7 +100,6 @@ export async function POST(request: Request) {
   const { subject, body: text } = formatEmail(result.data);
 
   try {
-    const ses = new SESv2Client({ region: REGION });
     await ses.send(
       new SendEmailCommand({
         FromEmailAddress: FROM,

@@ -173,6 +173,15 @@ Env vars are listed in `dashboard/.env.local.example`. All of them also need
 setting in the Vercel project, or the endpoint returns a 500 and tells the
 submitter to email instead.
 
+**The SES vars are `SES_*`, not `AWS_*`, deliberately.** Vercel functions run
+on Lambda, which presets `AWS_REGION` to the function's own region and
+`AWS_ACCESS_KEY_ID` to placeholder credentials that grant nothing. A client
+reading those names would silently build against the wrong region and fail
+with a 502 that looks like a credentials problem. The route passes region and
+credentials to `SESv2Client` explicitly, and falls back to the default
+credential chain only when `SES_ACCESS_KEY_ID` is unset, so local `aws
+configure` profiles still work.
+
 **SES setup this depends on.** `ASSESSMENT_FROM_EMAIL` must be a verified SES
 identity. While the account is in the SES sandbox the recipient must be
 verified too, which is fine because it is our own address. The `allclear-app`
