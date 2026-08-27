@@ -57,11 +57,16 @@ CAMERA_INDEX  = 0   # 0 = default webcam; swap for RTSP URL string for IP camera
 # Replace this with your actual camera UUID from Supabase once you insert a row
 CAMERA_ID = "00000000-0000-0000-0000-000000000001"
 
-# Check if Supabase is configured — if not, run in "local log only" mode
+# Check if Supabase is configured — if not, run in "local log only" mode.
+# These names must match exactly what storage.py hands to boto3. They used to
+# not: this gate checked S3_ACCESS_KEY_ID while the client read AWS_ACCESS_KEY_ID
+# through boto3's default chain, so the startup log could say "storage enabled"
+# and then every upload failed. Both sides now read S3_*.
 STORAGE_ENABLED = all([
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
     os.getenv("S3_ACCESS_KEY_ID"),
+    os.getenv("S3_SECRET_ACCESS_KEY"),
     os.getenv("S3_BUCKET_NAME"),
 ])
 

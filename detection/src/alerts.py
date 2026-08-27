@@ -67,9 +67,31 @@ def send_violation_sms(violation_type: str, camera_name: str, snapshot_key: str)
 # ---------- AWS SES Email Digests ----------
 
 def get_ses_client():
-    """Create and return a boto3 SES client."""
+    """
+    Create and return a boto3 SES client.
+
+    SES gets its own SES_* variables rather than borrowing the S3 ones. They
+    happen to hold the same region and the same key today, but they are two
+    different services: SES may need to move region for a deliverability or
+    identity-verification reason that has nothing to do with where the bucket
+    lives, and the send permission may end up on a separate IAM principal.
+    Credentials are passed explicitly for the same reason as in storage.py —
+    so boto3 can never fall back to a stale ~/.aws/credentials.
+    """
     import boto3
-    return boto3.client("ses", region_name=os.environ.get("S3_REGION", "ca-central-1"))
+    missing = [n for n in ("SES_ACCESS_KEY_ID", "SES_SECRET_ACCESS_KEY")
+               if not os.environ.get(n)]
+    if missing:
+        raise RuntimeError(
+            f"SES is not configured: {', '.join(missing)} not set. "
+            "Note the SES_ prefix, not AWS_ — see detection/.env.example."
+        )
+    return boto3.client(
+        "ses",
+        region_name=os.environ.get("SES_REGION", "ca-central-1"),
+        aws_access_key_id=os.environ["SES_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["SES_SECRET_ACCESS_KEY"],
+    )
 
 
 def send_daily_digest(to_email: str, html_body: str):

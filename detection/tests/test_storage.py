@@ -38,10 +38,10 @@ print("\n=== TEST 1: Environment Variables ===")
 required = [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
-    "AWS_ACCESS_KEY_ID",
-    "AWS_SECRET_ACCESS_KEY",
+    "S3_ACCESS_KEY_ID",
+    "S3_SECRET_ACCESS_KEY",
     "S3_BUCKET_NAME",
-    "AWS_REGION",
+    "S3_REGION",
 ]
 
 missing = [k for k in required if not os.getenv(k)]
@@ -103,11 +103,12 @@ except Exception as e:
 print("\n=== TEST 3: S3 Upload ===")
 
 try:
-    import boto3
-    s3 = boto3.client(
-        "s3",
-        region_name=os.environ.get("AWS_REGION", "ca-central-1")
-    )
+    # Use the real client factory rather than building a fresh boto3 client here.
+    # A separate client in the test can resolve credentials differently from the
+    # code it is meant to be testing — which is exactly how the 2026-08-20 S3
+    # failure stayed hidden. One factory, one credential path, one answer.
+    from storage import get_s3
+    s3 = get_s3()
     test_key = "allclear-test/connection_test.txt"
     s3.put_object(
         Bucket=os.environ["S3_BUCKET_NAME"],
@@ -124,7 +125,7 @@ try:
 except Exception as e:
     print(f"FAIL — S3 error: {e}")
     print("\nCommon causes:")
-    print("  - Wrong AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY")
+    print("  - Wrong S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY")
     print("  - S3_BUCKET_NAME bucket doesn't exist yet")
     print("  - Bucket is in wrong region (should be ca-central-1)")
     sys.exit(1)

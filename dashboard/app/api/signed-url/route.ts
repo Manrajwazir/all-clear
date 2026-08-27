@@ -22,6 +22,19 @@ import { signedUrlSchema } from "@/lib/validations";
  * enforces isolation for us.
  */
 
+// Deliberately S3_*, never AWS_*.
+//
+// Vercel functions run on AWS Lambda, and the Lambda runtime *presets*
+// AWS_REGION to the function's own region and AWS_ACCESS_KEY_ID /
+// AWS_SECRET_ACCESS_KEY to the execution role's placeholder credentials. Those
+// presets grant no access to our bucket, and because they are always present
+// they win over any `||` fallback written here. A client built from AWS_* on
+// Vercel therefore points at the wrong region with credentials that cannot
+// read anything — and fails at request time, not at deploy time.
+//
+// AWS_SECRET_KEY, AWS_EXECUTION_ENV, AWS_LAMBDA_*, NOW_REGION, TZ and
+// LAMBDA_TASK_ROOT cannot even be set in the Vercel dashboard; they are
+// reserved. Giving S3 its own namespace sidesteps the whole category.
 const s3 = new S3Client({
   region: process.env.S3_REGION || "ca-central-1",
   credentials: {

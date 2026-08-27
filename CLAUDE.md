@@ -432,7 +432,9 @@ Full schema in `docs/schema.sql`.
 
 SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (backend only)
 
-AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME
+S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_NAME
+
+SES_REGION, SES_ACCESS_KEY_ID, SES_SECRET_ACCESS_KEY
 
 TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, TWILIO_TO_NUMBER
 
@@ -448,9 +450,31 @@ DETECTION_CONFIDENCE_THRESHOLD, DEBOUNCE_FRAMES, COOLDOWN_SECONDS
 
 NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (browser-safe)
 
-AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME (server-side only, for /api/signed-url)
+S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_NAME (server-side only, for /api/signed-url)
 
 ```
+
+**Never name an S3 or SES variable `AWS_*`.** Both services get their own prefix,
+and it is not a style preference — it is load-bearing in two places.
+
+On Vercel, functions run on AWS Lambda, and the Lambda runtime *presets*
+`AWS_REGION` to the function's own region and `AWS_ACCESS_KEY_ID` /
+`AWS_SECRET_ACCESS_KEY` to execution-role placeholders that grant nothing. They
+are always present, so they beat any `||` fallback in code: a client built from
+`AWS_*` points at the wrong region with useless credentials and fails at request
+time, not deploy time. Several `AWS_*` names are outright reserved and cannot be
+set in the Vercel dashboard at all.
+
+In the Python service, boto3's default credential chain reads `AWS_*` and then
+falls back to `~/.aws/credentials`. On 2026-08-20 that fallback silently found a
+deleted key from the old personal AWS account and every S3 upload failed while
+the SMS alert still fired. `storage.py` and `alerts.py` now pass credentials
+explicitly from `S3_*` / `SES_*`, so there is exactly one credential source and
+a missing variable raises immediately instead of reaching for a stale file.
+
+The canonical list for each service is its `.env.example`. A variable the code
+reads and the example omits is the defect that broke signed URLs; add both in
+the same commit.
 
 
 

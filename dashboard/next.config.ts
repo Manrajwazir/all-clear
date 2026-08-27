@@ -1,11 +1,20 @@
 import type { NextConfig } from "next";
 
+// S3_BUCKET_NAME is read at BUILD time, not request time — Next.js inlines both
+// uses below into the compiled config. Changing the variable in Vercel without
+// redeploying leaves the old bucket baked into the CSP, and images 404 behind a
+// Content-Security-Policy error rather than an S3 error. Redeploy after changing it.
+//
+// The fallback is the dev bucket on purpose: if the variable is missing, images
+// fail closed against a bucket that holds no production data, rather than
+// against a plausible-looking name that does not exist at all.
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: `${process.env.S3_BUCKET_NAME || "all-clear-bucket"}.s3.ca-central-1.amazonaws.com`,
+        hostname: `${process.env.S3_BUCKET_NAME || "allclear-violations-dev"}.s3.ca-central-1.amazonaws.com`,
       },
     ],
   },
@@ -40,7 +49,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
-              `img-src 'self' data: https://${process.env.S3_BUCKET_NAME || "all-clear-bucket"}.s3.ca-central-1.amazonaws.com`,
+              `img-src 'self' data: https://${process.env.S3_BUCKET_NAME || "allclear-violations-dev"}.s3.ca-central-1.amazonaws.com`,
               `connect-src 'self' https://*.supabase.co wss://*.supabase.co`,
               "font-src 'self' https://fonts.gstatic.com",
               "frame-ancestors 'none'",

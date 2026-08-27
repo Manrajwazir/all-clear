@@ -48,16 +48,44 @@ def get_supabase():
 
 
 # ---------- AWS S3 ----------
-"""Create and return a boto3 S3 client."""
 def get_s3():
+    """
+    Create and return a boto3 S3 client with credentials passed explicitly.
+
+    Credentials are read from S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY and handed
+    to boto3 directly, rather than letting boto3 discover them itself. That is
+    deliberate and it is the fix for the 2026-08-20 live-test failure.
+
+    boto3's default credential chain checks environment variables first, then
+    falls back to ~/.aws/credentials. On 2026-08-20 the environment held no
+    credentials boto3 recognised, so it silently fell back to that file, found a
+    stale key from the old personal AWS account, and every upload failed with
+    InvalidAccessKeyId. The fallback is the bug: two credential sources that can
+    disagree, with no signal about which one won.
+
+    Passing credentials explicitly means there is exactly one source. If the
+    env vars are absent this raises immediately with a clear message instead of
+    reaching for a file nobody remembered was there.
+
+    The names are S3_*, not AWS_*, on purpose. See detection/.env.example.
+    """
     global _s3_client
     if _s3_client is None:
         import boto3
-        _s3_client = boto3.client("s3", region_name=os.environ.get("S3_REGION", "ca-central-1"))
+        missing = [n for n in ("S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY", "S3_BUCKET_NAME")
+                   if not os.environ.get(n)]
+        if missing:
+            raise RuntimeError(
+                f"S3 is not configured: {', '.join(missing)} not set. "
+                "Note the S3_ prefix, not AWS_ — see detection/.env.example."
+            )
+        _s3_client = boto3.client(
+            "s3",
+            region_name=os.environ.get("S3_REGION", "ca-central-1"),
+            aws_access_key_id=os.environ["S3_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["S3_SECRET_ACCESS_KEY"],
+        )
     return _s3_client
-
-# Uncomment when AWS is configured:
-# s3 = get_s3()
 
 
 def upload_snapshot(frame_bytes: bytes, camera_id: str) -> str:
@@ -72,7 +100,11 @@ def upload_snapshot(frame_bytes: bytes, camera_id: str) -> str:
     s3 = get_s3()
     key = f"violations/{camera_id}/{datetime.utcnow().isoformat()}.jpg"
     s3.put_object(
-        ACL='private', # S3 bucket is private; we generate signed URLs for access
+        # No ACL parameter. The bucket is created with Object Ownership set to
+        # "Bucket owner enforced", which disables ACLs entirely — passing even
+        # ACL='private' against such a bucket raises AccessControlListNotSupported.
+        # Privacy comes from Block Public Access plus the bucket policy, not from
+        # a per-object ACL. Encryption stays.
         ServerSideEncryption='AES256',
         Bucket=os.environ["S3_BUCKET_NAME"],
         Key=key,
