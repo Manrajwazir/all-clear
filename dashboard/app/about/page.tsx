@@ -46,7 +46,7 @@ export default function AboutPage() {
               reliable record of the work they are already doing.
             </p>
             <p>
-               Above all, we believe safety technology should earn people's trust. 
+               Above all, we believe safety technology should earn people&apos;s trust. 
                That means building with privacy, practicality, and the realities of the workplace in mind. 
                Our goal is not to create another surveillance system. It is to give organizations the insight 
                they need to prevent the next incident and help every worker get home safely.
