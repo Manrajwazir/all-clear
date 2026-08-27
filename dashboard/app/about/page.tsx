@@ -24,7 +24,7 @@ export default function AboutPage() {
         lead="Our team at All Clear is a group of passionate individuals, with a variety of industry experience, who are dedicated to improving safety in Alberta's industrial sites."
       />
 
-      {/* ═══ Why this — cream-200 ══════════════════════════════ */}
+      {/* ═══ Our Mission — cream-200 ══════════════════════════════ */}
       <Band tone="cream-200">
         <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-x-20">
           <div>
@@ -55,27 +55,27 @@ export default function AboutPage() {
         </div>
       </Band>
 
-      {/* ═══ Who we are — cream ════════════════════════════════ */}
+      {/* ═══ Who we serve — cream ════════════════════════════════ */}
       <Band tone="cream">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1fr] lg:gap-20">
           <div>
-            <Eyebrow className="mb-6">Who we are</Eyebrow>
+            <Eyebrow className="mb-6">Who we serve</Eyebrow>
             <h2 className="text-[clamp(24px,3vw,34px)] font-medium leading-[1.2] tracking-[-0.02em]">
               Alberta sites, Alberta operators, Alberta rules.
             </h2>
             <div className="measure mt-6 space-y-4 text-[16px] leading-[1.7] text-ink-muted sm:text-[17px]">
               <p>
-                All Clear was founded by two Computer Software Development
-                students at NAIT, in Edmonton. The company is incorporated in
-                Alberta and the work happens here.
+                All Clear was founded in Edmonton, Alberta, with a mission to make workplace
+                safety more proactive, practical, and accessible. We are incorporated in
+                Alberta, and our work is rooted in the communities and workplaces we serve.
               </p>
               <p>
-                That matters more than it sounds. The mechanics this product
-                turns on are provincial: WCB experience rating, COR
-                certification, the PIR rebate, PIPA. The best-funded companies
-                in this category are American, and the model the largest of them
-                runs on, bundling safety technology into workers&rsquo;
-                compensation premiums, is not legally possible in Canada.
+                Starting in Alberta matters because workplace safety is shaped by the
+                province&rsquo;s own systems, standards, and regulations. From WCB experience
+                rating and COR certification to the PIR rebate and PIPA, we are building
+                technology around the realities of Alberta workplaces. Our goal is to help
+                organizations identify risks earlier, strengthen their safety practices,
+                and prevent incidents before they happen.
               </p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function AboutPage() {
             <Card on="cream">
               <div className="label mb-3 text-accent">Founded by</div>
               <div className="text-[17px] font-medium">
-                Two NAIT CSD students
+                Xavion Dean &amp; Manraj Wazir
               </div>
             </Card>
             <Card on="cream">
@@ -113,15 +113,14 @@ export default function AboutPage() {
               Research &amp; support
             </Eyebrow>
             <h2 className="text-[clamp(26px,3.4vw,40px)] font-medium leading-[1.15] tracking-[-0.025em]">
-              Built with a research placement, not just an idea.
+              Built through research and backed by real worksites.
             </h2>
             <p className="measure mt-6 text-[16px] leading-[1.7] text-ink-inverse/85 sm:text-[17px]">
-              The detection work is being developed through a Mitacs Labs4
-              research placement with NAIT&rsquo;s Centre for Sensors and System
-              Integration, which means the model is evaluated under academic
-              supervision rather than only by the people who wrote it. The
-              tamper-evidence work on the compliance log is part of the same
-              placement.
+              The technology is being developed through a Mitacs Labs4 research placement with NAIT’s
+              Centre for Sensors and System Integration. This gives the work an academic research foundation, 
+              with the detection model and compliance technology evaluated under independent academic supervision. 
+              At the same time, the system is shaped by real workplace environments, helping ensure what we build is practical, 
+              reliable, and designed for the conditions where it will actually be used.
             </p>
           </div>
 
