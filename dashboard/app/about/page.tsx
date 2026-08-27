@@ -3,7 +3,7 @@ import PageHero from "@/components/site/PageHero";
 import { PrimaryCTA, SecondaryCTA } from "@/components/site/Buttons";
 
 export const metadata = {
-  title: "About",
+  title: "About Us",
   description:
     "All Clear is built in Edmonton by two NAIT software students, with a Mitacs Labs4 research placement at NAIT's Centre for Sensors and System Integration.",
 };
@@ -12,50 +12,44 @@ const BACKERS = [
   ["Edmonton Unlimited", "Venture support"],
   ["Alberta Innovates", "Provincial innovation support"],
   ["City of Edmonton", "Municipal support"],
-  ["NAIT CSSI", "Mitacs Labs4 research placement"],
+  ["NAIT", "Mitacs Labs4 research placement"],
 ];
 
 export default function AboutPage() {
   return (
     <>
       <PageHero
-        eyebrow="About"
-        title="Two software students in Edmonton, building the boring half of safety."
+        eyebrow="About Us"
+        title="Who We Are"
+        lead="Our team at All Clear is a group of passionate individuals, with a variety of industry experience, who are dedicated to improving safety in Alberta's industrial sites."
       />
 
       {/* ═══ Why this — cream-200 ══════════════════════════════ */}
       <Band tone="cream-200">
         <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-x-20">
           <div>
-            <Eyebrow className="mb-6">Why this</Eyebrow>
+            <Eyebrow className="mb-6">Our Mission</Eyebrow>
             <p className="text-[19px] font-medium leading-[1.45] tracking-[-0.01em] sm:text-[22px]">
-              All Clear started with a wrong assumption. We thought the problem
-              worth solving was catching PPE violations as they happen.
+                Make workplace safety simpler.
             </p>
           </div>
           <div className="measure space-y-5 text-[16px] leading-[1.75] text-ink-muted sm:text-[17px]">
             <p>
-              Then we talked to the people who would actually use it.
-              Supervisors already know their sites. They know which gate people
-              cut through without a hat on and roughly when. What they
-              don&rsquo;t have is anything to show for the checking they do all
-              day. The walkaround happens; the record of it is a signature on a
-              clipboard, if it exists at all.
+              Help workplaces prevent incidents before they happen. 
+              We believe safety teams should spend less time chasing paperwork and more time understanding what is happening on the ground. 
+              By turning everyday safety observations into clear, useful information, we help teams identify risks earlier and take action sooner.
             </p>
             <p>
-              So when an auditor, an insurer or a WCB reviewer asks what
-              compliance looked like on a specific afternoon four months ago,
-              the honest answer is usually a shrug and a binder. That gap is the
-              product. A safety manager at one large operator put it to us
-              plainly: the automated documentation is most of the value, and
-              preventing the next incident is the part on top.
+              We are building technology that supports the people responsible for keeping workplaces safe. 
+              Supervisors and safety managers already know their sites, their teams, and the risks they face. 
+              Our role is to give them better tools to capture what they see, understand patterns, and build a 
+              reliable record of the work they are already doing.
             </p>
             <p>
-              We built it as a sensor rather than a surveillance system for the
-              same reason. On a unionized industrial site, a tool that
-              photographs workers loses the room before it gets a chance to be
-              useful. Default mode captures no imagery, and that constraint
-              shaped the architecture instead of being bolted on afterwards.
+               Above all, we believe safety technology should earn people's trust. 
+               That means building with privacy, practicality, and the realities of the workplace in mind. 
+               Our goal is not to create another surveillance system. It is to give organizations the insight 
+               they need to prevent the next incident and help every worker get home safely.
             </p>
           </div>
         </div>
