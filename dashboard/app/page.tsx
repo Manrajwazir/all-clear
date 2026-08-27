@@ -1,6 +1,6 @@
 import Band, { Card, Eyebrow } from "@/components/site/Band";
 import { PrimaryCTA, SecondaryCTA, ArrowLink } from "@/components/site/Buttons";
-
+import HeroPipeline from "@/components/site/HeroPipeline";
 
 export const metadata = {
   title: "All Clear | Monitoring system for safety in worksites",
@@ -35,6 +35,8 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        <HeroPipeline />
       </Band>
 
       {/* ═══ 2. The financial mechanism — cream-200 band ════════ */}
