@@ -10,6 +10,9 @@ export default async function DashboardPage() {
   const { data: violationsData } = await supabase
     .from("violations")
     .select("*, cameras(name, sites(name))")
+    // Tombstoned violations are removed content, not violations. Every read
+    // path must exclude them — ADR 0003 Amendment 1.
+    .is("deleted_at", null)
     .order("detected_at", { ascending: false })
     .limit(50);
 

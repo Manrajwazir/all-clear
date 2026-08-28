@@ -80,6 +80,10 @@ export async function GET(request: NextRequest) {
   const { data: violation } = await (supabase.from("violations") as any)
     .select("id")
     .or(`snapshot_s3_key.eq.${key},snapshot_s3_key.ilike.%${key}`)
+    // Never sign a URL for a tombstoned violation. Tombstoning nulls
+    // snapshot_s3_key, so this should already miss — but if the S3 delete
+    // failed and the key lingered, this is what stops the image being served.
+    .is("deleted_at", null)
     .limit(1)
     .maybeSingle() as { data: { id: string } | null };
 

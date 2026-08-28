@@ -17,6 +17,8 @@ async function getStats() {
     const { count } = await supabase
       .from("violations")
       .select("*", { count: "exact", head: true })
+      // A tombstoned violation must not be counted (ADR 0003 Amendment 1).
+      .is("deleted_at", null)
       .gte("detected_at", today.toISOString());
     return { todayCount: count ?? 0, isLive: true };
   } catch {

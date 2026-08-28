@@ -35,7 +35,10 @@ export function ViolationFeed({
       .from("violations")
       .select("*, cameras(name, sites(name))")
       .eq("id", id)
-      .single();
+      // Excluded here too: a Realtime event can arrive for a row that was
+      // tombstoned between the notification and this re-fetch.
+      .is("deleted_at", null)
+      .maybeSingle();
     return (data as ViolationWithCamera | null) ?? null;
   }, []);
 

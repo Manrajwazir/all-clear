@@ -65,11 +65,23 @@ function makeOne(
     snapshot_s3_key: null,
     idempotency_key: null,
     detected_at: new Date(ts).toISOString(),
+    // Demo rows are built in the browser and never inserted, so there is no
+    // server to assign this. Using detected_at keeps the shape honest without
+    // pretending a round trip happened.
+    received_at: new Date(ts).toISOString(),
+    // Not hash-chained: these rows never reach the database, so they are not
+    // part of any device's chain. Leaving them null is correct, not a stub.
+    event_hash: null,
+    prev_hash: null,
     created_at: new Date(ts).toISOString(),
     resolved_at: status !== "pending" ? new Date(ts + 60_000).toISOString() : null,
     resolved_by: null,
     resolution_status: status,
     notes: null,
+    // Demo data is never tombstoned. Real feeds must filter on deleted_at.
+    deleted_at: null,
+    deletion_reason: null,
+    deleted_by: null,
     cameras: DEMO_CAMERA,
   };
 }

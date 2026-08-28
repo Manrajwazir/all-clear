@@ -11,6 +11,36 @@ export type UserStatus = "active" | "invited" | "disabled";
 export type DeviceStatus = "pending" | "active" | "revoked";
 export type RecordStatus = "active" | "inactive";
 
+/**
+ * Why a violation was tombstoned. Deliberately has no "retention" value:
+ * ADR 0007 retention keeps event rows indefinitely and deletes imagery only,
+ * which nulls snapshot_s3_key on a LIVE row and is not a tombstone.
+ */
+export type DeletionReason =
+  | "pipa_deletion_request"
+  | "legal_order"
+  | "operator_error";
+
+/**
+ * Columns that feed the tamper-evidence hash (ADR 0003).
+ *
+ * A BEFORE UPDATE trigger in migration 005 §7 rejects any UPDATE touching
+ * these, so an attempt is a runtime error, not a silent chain break. They are
+ * excluded from the violations Update type below so it fails at compile time
+ * instead.
+ */
+export type HashedViolationField =
+  | "organization_id"
+  | "site_id"
+  | "camera_id"
+  | "violation_type"
+  | "confidence"
+  | "detected_at"
+  | "received_at"
+  | "device_id"
+  | "event_hash"
+  | "prev_hash";
+
 export interface Organization {
   id: string;
   name: string;
@@ -46,8 +76,14 @@ export interface Device {
   organization_id: string;
   site_id: string;
   name: string;
-  provisioning_token: string | null;
+  /** Public half of the split token (ADR 0002). Indexed plaintext, safe to log. */
+  key_id: string | null;
+  /** SHA-256 of the API key secret. NOT bcrypt — see ADR 0002. Never the raw key. */
   api_key_hash: string | null;
+  /** SHA-256 of the one-time provisioning token. Nulled once claimed. */
+  provisioning_token_hash: string | null;
+  /** 48h TTL on the provisioning token. Nulled once claimed. */
+  provisioning_token_expires_at: string | null;
   status: DeviceStatus;
   last_seen_at: string | null;
   created_at: string;
@@ -76,11 +112,35 @@ export interface Violation {
   snapshot_s3_key: string | null;
   idempotency_key: string | null;
   detected_at: string;
+  /**
+   * Server-assigned receipt time and a hash-chain input (ADR 0003).
+   * Never accept this from a device — a device clock is forgeable by the device.
+   */
+  received_at: string;
+  /** SHA-256 over the canonical event serialization (ADR 0003). */
+  event_hash: string | null;
+  /** The previous violation's event_hash for this device. Null = first in chain. */
+  prev_hash: string | null;
   created_at: string;
   resolved_at: string | null;
   resolved_by: string | null;
   resolution_status: ResolutionStatus;
   notes: string | null;
+
+  /**
+   * Tombstone marker (ADR 0003 Amendment 1). Null = live.
+   *
+   * A violation is NEVER physically deleted — that breaks the hash chain from
+   * this row forward. Legitimate removals null the unhashed content
+   * (notes, snapshot_s3_key) and set these three instead.
+   *
+   * EVERY read path must filter on `deleted_at IS NULL`. Missing it anywhere
+   * resurfaces removed content, which is a data-handling failure and not a
+   * display bug. Prefer the shared helper over repeating the predicate.
+   */
+  deleted_at: string | null;
+  deletion_reason: DeletionReason | null;
+  deleted_by: string | null;
 }
 
 export interface Camera {
@@ -106,6 +166,12 @@ export interface Site {
   pipa_attestation_completed: boolean;
   pipa_attestation_by: string | null;
   pipa_attestation_at: string | null;
+  /**
+   * Opt-in imagery capture (ADR 0001). Default false. A snapshot offered to a
+   * site with this false must be rejected with an explicit 400, never silently
+   * discarded.
+   */
+  snapshot_mode: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -161,7 +227,11 @@ export interface Database {
           violation_type: string;
           confidence: number;
         };
-        Update: Partial<Violation>;
+        // Hashed columns are omitted: the database trigger rejects updating
+        // them, so allowing them here would only move the failure to runtime.
+        // To remove content from a violation, tombstone it — set deleted_at
+        // and deletion_reason and null notes / snapshot_s3_key.
+        Update: Partial<Omit<Violation, HashedViolationField>>;
       };
     };
     Views: Record<string, never>;
