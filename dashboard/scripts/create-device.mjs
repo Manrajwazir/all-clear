@@ -30,6 +30,9 @@ const db = serviceClient();
 /** Matches the 48h TTL described in ADR 0002 and enforced by claim_device(). */
 const TOKEN_TTL_HOURS = 48;
 
+/** Where the dashboard is running, for the printed activation command. */
+const API_URL = process.env.ALLCLEAR_API_URL ?? "http://localhost:3000";
+
 function parseArgs(argv) {
   const args = { listSites: false, site: null, name: null };
   for (let i = 0; i < argv.length; i++) {
@@ -134,13 +137,27 @@ async function createDevice(siteId, name) {
   console.log("");
   console.log(`    ${token}`);
   console.log("");
-  console.log("  Activate the device with:");
+  // BOTH shells, always.
+  //
+  // This printed only a bash-style curl until 2026-08-31, which is broken
+  // advice on the platform this project is actually developed on: in Windows
+  // PowerShell `curl` is an alias for Invoke-WebRequest, which rejects -X, -H
+  // and -d outright, and `\` is not a line continuation. A tool that hands the
+  // operator a command that cannot run is worse than one that prints nothing.
+  console.log("  Activate the device — PowerShell (Windows):");
   console.log("");
-  console.log(`    curl -X POST http://localhost:3000/api/v1/devices/provision \\`);
+  console.log(`    Invoke-RestMethod -Uri "${API_URL}/api/v1/devices/provision" \``);
+  console.log(`      -Method Post -ContentType "application/json" \``);
+  console.log(`      -Body '{"provisioning_token":"${token}"}'`);
+  console.log("");
+  console.log("  Activate the device — bash / macOS / Linux:");
+  console.log("");
+  console.log(`    curl -X POST ${API_URL}/api/v1/devices/provision \\`);
   console.log(`      -H "Content-Type: application/json" \\`);
   console.log(`      -d '{"provisioning_token":"${token}"}'`);
   console.log("");
   console.log("  That call returns the device API key, also exactly once.");
+  console.log("  Paste it into detection/.env as DEVICE_API_KEY.");
   console.log("=".repeat(68));
 
   if (!site.pipa_attestation_completed) {
