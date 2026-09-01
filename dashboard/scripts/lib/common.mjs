@@ -124,6 +124,19 @@ export function generateProvisioningToken() {
   return randomBytes(32).toString("base64url");
 }
 
+/**
+ * Split an issued key into its two halves. Mirrors parseApiKey().
+ *
+ * The first underscore after the prefix is always the separator, because
+ * key_id is hex and hex contains no underscore. The secret is base64url and
+ * CAN contain one, which is exactly why the split is anchored at the front.
+ */
+export function splitApiKey(apiKey) {
+  const body = apiKey.slice(KEY_PREFIX.length);
+  const sep = body.indexOf("_");
+  return { keyId: body.slice(0, sep), secret: body.slice(sep + 1) };
+}
+
 // ─── Test output ────────────────────────────────────────────────────
 
 const results = { pass: 0, fail: 0 };
