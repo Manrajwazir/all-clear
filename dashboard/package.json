@@ -10,7 +10,8 @@
     "type-check": "tsc --noEmit",
     "create-device": "node scripts/create-device.mjs",
     "test:provision": "node scripts/test-provision.mjs",
-    "test:heartbeat": "node scripts/test-heartbeat.mjs"
+    "test:heartbeat": "node scripts/test-heartbeat.mjs",
+    "test:violations": "node scripts/test-violations.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",
