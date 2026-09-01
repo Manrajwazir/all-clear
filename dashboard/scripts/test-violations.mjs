@@ -197,6 +197,22 @@ async function setup() {
   const snap = sites.find((s) => s.snapshot_mode).id;
   created.sites.push(noSnap, snap);
 
+  // ⚠ ONE FIXTURE DELIBERATELY DOES NOT USE randomUUID().
+  //
+  // Every other id in this suite comes from randomUUID(), which always yields a
+  // well-formed v4. That uniformity is exactly why the suite missed a real bug:
+  // Zod 4's .uuid() validates the RFC version bits, so hand-written placeholder
+  // ids — which is what production seed data is made of — were rejected at the
+  // API while sitting perfectly happily in Postgres. A real camera no device
+  // could report against. Found by the first live camera run, 2026-08-31.
+  //
+  // The version nibble here is 0, which is not a legal UUID version and is the
+  // precise shape that broke. Suffix is time-based so re-runs cannot collide.
+  const legacyCamId = `00000000-0000-0000-0000-${Date.now()
+    .toString(16)
+    .padStart(12, "0")
+    .slice(-12)}`;
+
   const { data: cams, error: cErr } = await db
     .from("cameras")
     .insert([
@@ -206,11 +222,24 @@ async function setup() {
     .select("id, site_id");
   if (cErr) throw new Error(`fixture cameras: ${cErr.message}`);
 
-  const camNoSnap = cams.find((c) => c.site_id === noSnap).id;
-  const camSnap = cams.find((c) => c.site_id === snap).id;
-  created.cameras.push(camNoSnap, camSnap);
+  // Inserted SEPARATELY, not appended to the batch above. PostgREST turns a
+  // multi-row insert into one statement with a single shared column list, so a
+  // batch where only some rows carry `id` sends NULL for the others instead of
+  // letting the column default fire — "null value in column id violates
+  // not-null constraint".
+  const { error: legacyErr } = await db.from("cameras").insert({
+    id: legacyCamId,
+    organization_id: org.id,
+    site_id: noSnap,
+    name: `${TAG}-cam-legacy-uuid`,
+  });
+  if (legacyErr) throw new Error(`fixture legacy camera: ${legacyErr.message}`);
 
-  return { noSnap, snap, camNoSnap, camSnap };
+  const camSnap = cams.find((c) => c.site_id === snap).id;
+  const camNoSnap = cams.find((c) => c.site_id === noSnap).id;
+  created.cameras.push(camNoSnap, camSnap, legacyCamId);
+
+  return { noSnap, snap, camNoSnap, camSnap, legacyCamId };
 }
 
 async function teardown() {
@@ -243,7 +272,7 @@ async function run() {
     process.exit(1);
   }
 
-  const { noSnap, snap, camNoSnap, camSnap } = await setup();
+  const { noSnap, snap, camNoSnap, camSnap, legacyCamId } = await setup();
 
   const devA = await provisionDevice("A-nosnap", noSnap, IP.p1);
   const devB = await provisionDevice("B-snap", snap, IP.p2);
@@ -530,6 +559,39 @@ async function run() {
   const replay = await submit(devA.apiKey, IP.main, payload(camNoSnap, {
     detected_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString() }));
   check("a 6-hour-old detection returns 201", replay.status === 201, `got ${replay.status}`);
+
+  // ── 10c. Anything Postgres accepts must be referenceable ───────────
+  section("10c. A camera whose id is not a v4 UUID still works");
+
+  const legacy = await submit(devA.apiKey, IP.main, payload(legacyCamId));
+  check(
+    `a camera id with a version-0 nibble is accepted (${legacyCamId})`,
+    legacy.status === 201,
+    `got ${legacy.status} ${JSON.stringify(legacy.body)}`,
+  );
+  check(
+    "and the row records that camera",
+    legacy.status === 201 &&
+      (
+        await db
+          .from("violations")
+          .select("camera_id")
+          .eq("id", legacy.body.violation_id)
+          .single()
+      ).data?.camera_id === legacyCamId,
+  );
+
+  const legacyIdem = payload(camNoSnap);
+  legacyIdem.idempotency_key = `00000000-0000-0000-0000-${Date.now()
+    .toString(16)
+    .padStart(12, "0")
+    .slice(-12)}`;
+  const legacyKey = await submit(devA.apiKey, IP.main, legacyIdem);
+  check(
+    "an idempotency_key that is not a v4 UUID is accepted too",
+    legacyKey.status === 201,
+    `got ${legacyKey.status} ${JSON.stringify(legacyKey.body)}`,
+  );
 
   // ── 11. Tamper evidence is enforced, not just computed ─────────────
   section("11. Even the service role cannot edit a sealed column");

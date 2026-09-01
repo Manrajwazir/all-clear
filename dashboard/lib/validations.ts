@@ -15,6 +15,33 @@
 
 import { z } from "zod";
 
+/**
+ * An identifier Postgres will store in a `uuid` column.
+ *
+ * ⚠ USE THIS, NOT `z.string().uuid()`. The difference is not cosmetic.
+ *
+ * Zod 4's `.uuid()` validates the RFC 9562 VERSION AND VARIANT BITS — the
+ * nibble that says "this is a v4 random UUID" must be 1-8. Postgres's `uuid`
+ * type checks no such thing: it accepts any 8-4-4-4-12 hex string, stores it,
+ * and indexes it.
+ *
+ * So `.uuid()` made this API stricter than its own database. Seeded rows like
+ * `00000000-0000-0000-0000-000000000001` and
+ * `aaaaaaaa-0000-0000-0000-000000000001` live happily in Postgres and were
+ * rejected at the boundary with "Invalid input" — a real camera, present in the
+ * table, that no device could file a violation against.
+ *
+ * Found 2026-08-31 by the first live camera run, not by any test suite: every
+ * fixture used `randomUUID()`, which always produces a well-formed v4. The bug
+ * could only appear against hand-written placeholder IDs, which is exactly what
+ * production seed data is made of.
+ *
+ * `z.guid()` is Zod 4's RFC-agnostic form and matches what Postgres accepts.
+ * The validation boundary should never be narrower than the storage layer:
+ * anything the database can hold must be referenceable.
+ */
+export const dbUuid = (message = "Invalid ID format") => z.guid(message);
+
 // ─── Signed URL Route ───────────────────────────────────────────────
 
 export const signedUrlSchema = z.object({
@@ -84,14 +111,14 @@ export const violationSubmitSchema = z.object({
       (value) => Date.parse(value) <= Date.now() + MAX_CLOCK_SKEW_MS,
       "detected_at cannot be more than 5 minutes in the future",
     ),
-  camera_id: z.string().uuid(),
+  camera_id: dbUuid("camera_id must be a UUID"),
   /**
    * Whether this device is holding an image for this event. NOT a key, NOT a
    * path — the server decides where an image lives. Defaults false, which is
    * the normal operating mode (ADR 0001: All Clear is a sensor, not a camera).
    */
   snapshot_requested: z.boolean().default(false),
-  idempotency_key: z.string().uuid("Idempotency key must be a UUID"),
+  idempotency_key: dbUuid("Idempotency key must be a UUID"),
 });
 
 // ─── Device Provisioning (Phase 3) ──────────────────────────────────
@@ -134,4 +161,4 @@ export const resolveViolationSchema = z.object({
 
 // ─── UUID parameter validation ──────────────────────────────────────
 
-export const uuidParam = z.string().uuid("Invalid ID format");
+export const uuidParam = dbUuid("Invalid ID format");
