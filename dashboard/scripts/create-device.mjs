@@ -144,20 +144,36 @@ async function createDevice(siteId, name) {
   // PowerShell `curl` is an alias for Invoke-WebRequest, which rejects -X, -H
   // and -d outright, and `\` is not a line continuation. A tool that hands the
   // operator a command that cannot run is worse than one that prints nothing.
+  // ⚠ CAPTURE THE KEY, DO NOT READ IT OFF THE SCREEN.
+  //
+  // The first version of this told the operator to run Invoke-RestMethod and
+  // copy the api_key out of the printed object. That lost 20 characters of a
+  // 68-character key to terminal formatting, and the resulting symptom was a
+  // flat 401 with no hint that the key was merely truncated — the key_id half
+  // survives, so the device looks real right up until the hash comparison.
+  //
+  // Both forms below now write the key straight to a file. The key is shown
+  // exactly once and cannot be recovered, so the copy has to be reliable.
   console.log("  Activate the device — PowerShell (Windows):");
   console.log("");
-  console.log(`    Invoke-RestMethod -Uri "${API_URL}/api/v1/devices/provision" \``);
+  console.log(`    $r = Invoke-RestMethod -Uri "${API_URL}/api/v1/devices/provision" \``);
   console.log(`      -Method Post -ContentType "application/json" \``);
   console.log(`      -Body '{"provisioning_token":"${token}"}'`);
+  console.log(`    $r.api_key | Set-Content -NoNewline -Encoding ascii device_key.txt`);
+  console.log(`    Get-Content device_key.txt   # verify: should be 68 characters`);
   console.log("");
   console.log("  Activate the device — bash / macOS / Linux:");
   console.log("");
-  console.log(`    curl -X POST ${API_URL}/api/v1/devices/provision \\`);
+  console.log(`    curl -s -X POST ${API_URL}/api/v1/devices/provision \\`);
   console.log(`      -H "Content-Type: application/json" \\`);
-  console.log(`      -d '{"provisioning_token":"${token}"}'`);
+  console.log(`      -d '{"provisioning_token":"${token}"}' \\`);
+  console.log(`      | python -c "import json,sys;print(json.load(sys.stdin)['api_key'],end='')" \\`);
+  console.log(`      > device_key.txt`);
   console.log("");
-  console.log("  That call returns the device API key, also exactly once.");
-  console.log("  Paste it into detection/.env as DEVICE_API_KEY.");
+  console.log("  Then paste the file's contents into detection/.env as DEVICE_API_KEY");
+  console.log("  and delete device_key.txt. The key is shown ONCE and is 68 chars:");
+  console.log("      ac_live_ (8) + key_id (16) + _ (1) + secret (43)");
+  console.log("  A short key fails with a plain 401 and no hint that it was truncated.");
   console.log("=".repeat(68));
 
   if (!site.pipa_attestation_completed) {
