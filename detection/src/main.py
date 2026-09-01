@@ -1,17 +1,34 @@
 """
 main.py — All Clear Detection Service Entry Point
 -----------------------------------------------
-Phase 2: live detection loop + debounce + Supabase logging + S3 snapshots.
+Phase 3: live detection loop + debounce + API submission.
 
 Data flow per frame:
   OpenCV (webcam)
-    → PPEDetector.predict()         [YOLO inference on GPU]
-    → PPEDetector.find_violations() [filter for NO-Hardhat etc.]
-    → ViolationTracker.should_alert() [debounce + cooldown]
-    → cv2.imencode()                [encode frame to JPEG bytes]
-    → upload_snapshot()             [save image to S3]
-    → log_violation()               [insert row in Supabase]
+    → PPEDetector.predict()           [YOLO inference on GPU]
+    → PPEDetector.find_violations()   [filter for NO-Hardhat etc.]
+    → ViolationTracker.should_alert()  [debounce + cooldown]
+    → new_idempotency_key()           [minted ONCE, here, per event]
+    → client.submit_violation()       [POST /api/v1/violations]
+    → client.upload_snapshot()        [PUT direct to S3, snapshot sites only]
+    → client.confirm_snapshot()       [server verifies the object exists]
+    → send_violation_sms()            [ONLY after a confirmed 201]
     → annotated frame shown in window
+
+WHAT CHANGED IN PHASE 3, AND WHY IT MATTERS
+
+This process no longer holds the Supabase service-role key or the S3 keys. It
+holds one device API key, scoped to one device at one site, revocable from the
+dashboard. Everything it writes goes through the API, which decides the
+organisation from the key rather than believing anything this process claims.
+
+That is the entire point of the step. The old arrangement worked on a laptop
+and could not ship: the service-role key bypasses every access rule in the
+database, and this code runs on a small computer in an unlocked job-site
+trailer.
+
+`storage.py` still exists and still works. It is simply no longer on the
+violation path. `tests/test_storage.py` continues to exercise it directly.
 
 Run from the detection/ folder:
     cd detection
@@ -35,8 +52,15 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from detector import PPEDetector, VIOLATION_CLASSES
 from debounce import ViolationTracker
-from storage import upload_snapshot, log_violation
 from alerts import send_violation_sms
+from api_client import (
+    AllClearClient,
+    AllClearError,
+    AuthError,
+    RejectedError,
+    new_idempotency_key,
+    utc_now_iso,
+)
 
 load_dotenv()
 
@@ -53,22 +77,28 @@ DEBOUNCE_F    = int(os.getenv("DEBOUNCE_FRAMES", 5))
 COOLDOWN_S    = int(os.getenv("COOLDOWN_SECONDS", 60))
 CAMERA_INDEX  = 0   # 0 = default webcam; swap for RTSP URL string for IP camera
 
-# Hardcoded camera UUID for MVP (single site, single camera)
-# Replace this with your actual camera UUID from Supabase once you insert a row
-CAMERA_ID = "00000000-0000-0000-0000-000000000001"
+# Which camera this device is watching.
+#
+# CAMERA_ID STAYS IN CONFIG, and that is a considered position rather than an
+# oversight. It is a selector, not a credential: it names which camera row this
+# process reports against, it is not secret, and knowing it grants nothing. The
+# server independently rejects any camera that is not at this device's own site.
+# What left the device in Phase 3 are the SECRETS — the Supabase service-role
+# key, the S3 keys.
+CAMERA_ID = os.getenv("CAMERA_ID", "00000000-0000-0000-0000-000000000001")
 
-# Check if Supabase is configured — if not, run in "local log only" mode.
-# These names must match exactly what storage.py hands to boto3. They used to
-# not: this gate checked S3_ACCESS_KEY_ID while the client read AWS_ACCESS_KEY_ID
-# through boto3's default chain, so the startup log could say "storage enabled"
-# and then every upload failed. Both sides now read S3_*.
-STORAGE_ENABLED = all([
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
-    os.getenv("S3_ACCESS_KEY_ID"),
-    os.getenv("S3_SECRET_ACCESS_KEY"),
-    os.getenv("S3_BUCKET_NAME"),
-])
+# ── API configuration (Phase 3) ────────────────────────────────────────────
+ALLCLEAR_API_URL = os.getenv("ALLCLEAR_API_URL", "http://localhost:3000")
+DEVICE_API_KEY   = os.getenv("DEVICE_API_KEY", "")
+
+# The operator's intent only. The client will NOT actually request an image
+# until the server has confirmed this site captures imagery — see
+# AllClearClient.wants_snapshot() for why guessing here would be dangerous.
+SNAPSHOT_MODE    = os.getenv("SNAPSHOT_MODE", "false").lower() in ("1", "true", "yes")
+
+HEARTBEAT_SECONDS = int(os.getenv("HEARTBEAT_SECONDS", 30))
+
+API_ENABLED = bool(DEVICE_API_KEY)
 
 TWILIO_ENABLED = all([
     os.getenv("TWILIO_ACCOUNT_SID"),
@@ -77,21 +107,55 @@ TWILIO_ENABLED = all([
     os.getenv("TWILIO_TO_NUMBER"),
 ])
 
-if not STORAGE_ENABLED:
+if not API_ENABLED:
     logger.warning(
-        "Supabase / AWS not configured in .env — "
-        "running in LOCAL LOG ONLY mode. Violations print to terminal only."
+        "DEVICE_API_KEY is not set — running in LOCAL LOG ONLY mode. "
+        "Violations print to the terminal and are recorded nowhere. "
+        "Provision a device to get a key: see dashboard/scripts/create-device.mjs."
     )
 else:
-    logger.info("Storage enabled: violations will be saved to Supabase + S3.")
+    logger.info("API enabled: violations will be submitted to %s", ALLCLEAR_API_URL)
 
 if not TWILIO_ENABLED:
     logger.warning("Twilio not configured in .env — SMS alerts disabled.")
 else:
-    logger.info("Twilio enabled: SMS alerts will fire on confirmed violations.")
+    logger.info("Twilio enabled: SMS fires only after a confirmed 201.")
 
 
 def run_detection():
+    # ── Verify the device key BEFORE loading the model or opening the camera ──
+    #
+    # Fail fast, deliberately. On 2026-08-20 this service ran for a full session
+    # looking healthy while every write was failing — the SMS alerts still fired,
+    # so it looked like it was working, and nothing was being recorded. Refusing
+    # to start is far better than that.
+    client = None
+    if API_ENABLED:
+        client = AllClearClient(
+            base_url=ALLCLEAR_API_URL,
+            api_key=DEVICE_API_KEY,
+            snapshot_mode=SNAPSHOT_MODE,
+        )
+        try:
+            logger.info("Verifying device key against %s ...", ALLCLEAR_API_URL)
+            client.verify_key()
+            logger.info("Device key accepted.")
+        except AuthError as exc:
+            logger.error(
+                "Device key REJECTED — this device is unknown or revoked. %s", exc
+            )
+            return
+        except AllClearError as exc:
+            logger.error(
+                "Could not reach the All Clear API at %s — %s. "
+                "Is the dashboard running (npm run dev)?",
+                ALLCLEAR_API_URL,
+                exc,
+            )
+            return
+
+        client.start_heartbeat(HEARTBEAT_SECONDS)
+
     logger.info("Loading PPE model...")
     detector = PPEDetector(model_path=MODEL_PATH)
 
@@ -122,9 +186,11 @@ def run_detection():
     print("  All Clear — Live PPE Detection + Violation Logger")
     print(f"  Monitoring: {', '.join(sorted(VIOLATION_CLASSES))}")
     print(f"  Debounce: {DEBOUNCE_F} frames | Cooldown: {COOLDOWN_S}s")
-    mode = "Supabase + S3" if STORAGE_ENABLED else "LOCAL LOG ONLY"
+    mode = f"API → {ALLCLEAR_API_URL}" if API_ENABLED else "LOCAL LOG ONLY"
     print(f"  Storage mode: {mode}")
-    sms_mode = "ON" if TWILIO_ENABLED else "OFF (fill Twilio keys in .env)"
+    snap = "requested (pending site confirmation)" if SNAPSHOT_MODE else "off"
+    print(f"  Snapshots:    {snap}")
+    sms_mode = "ON (after 201 only)" if TWILIO_ENABLED else "OFF (fill Twilio keys in .env)"
     print(f"  SMS alerts:   {sms_mode}")
     print("  Press  q or ESC  to quit  |  s  to save a snapshot")
     print("  NOTE: click the camera window first, THEN press q")
@@ -175,46 +241,102 @@ def run_detection():
             if tracker.should_alert(v_type):
                 logger.info(f"ALERT      type={v_type} — debounce passed, firing pipeline")
 
-                snapshot_key = None
-
-                if STORAGE_ENABLED:
-                    try:
-                        # Encode the current frame as JPEG bytes
-                        success, buffer = cv2.imencode(".jpg", frame)
-                        if success:
-                            snapshot_key = upload_snapshot(
-                                frame_bytes=buffer.tobytes(),
-                                camera_id=CAMERA_ID
-                            )
-                            logger.info(f"S3 upload OK → {snapshot_key}")
-                        else:
-                            logger.warning("JPEG encode failed — skipping S3 upload")
-                    except Exception as e:
-                        logger.error(f"S3 upload failed: {e}")
-
-                    try:
-                        log_violation(
-                            camera_id=CAMERA_ID,
-                            violation_type=v_type,
-                            confidence=conf,
-                            snapshot_s3_key=snapshot_key
-                        )
-                        logger.info(f"Supabase log OK — type={v_type}")
-                    except Exception as e:
-                        logger.error(f"Supabase log failed: {e}")
-
-                    # Phase 3 — SMS alert
-                    if TWILIO_ENABLED:
-                        send_violation_sms(
-                            violation_type=v_type,
-                            camera_name="Webcam Dev Camera",
-                            snapshot_key=snapshot_key or "no-image"
-                        )
-                else:
-                    # No storage configured — just print
+                if not API_ENABLED:
                     logger.info(
-                        f"[LOCAL] Would log: type={v_type} conf={conf:.2f} "
+                        f"[LOCAL] Would submit: type={v_type} conf={conf:.2f} "
                         f"camera={CAMERA_ID}"
+                    )
+                    continue
+
+                # ── Mint the idempotency key HERE, once, for this event ──────
+                #
+                # Not inside a retry, not inside the client. This one value is
+                # what lets the same incident be sent twice without becoming two
+                # incidents, and it only works if every attempt carries the same
+                # key. Step 3.5 will move this to enqueue time for the same
+                # reason.
+                idem = new_idempotency_key()
+                detected_at = utc_now_iso()
+
+                # Encode only if an image could actually be used. On a default
+                # site nothing wants the bytes, and JPEG-encoding every
+                # violation frame for nobody is pure waste.
+                jpeg_bytes = None
+                if client.wants_snapshot():
+                    ok, buffer = cv2.imencode(".jpg", frame)
+                    if ok:
+                        jpeg_bytes = buffer.tobytes()
+                    else:
+                        logger.warning("JPEG encode failed — submitting without an image")
+
+                try:
+                    result = client.submit_violation(
+                        camera_id=CAMERA_ID,
+                        violation_type=v_type,
+                        confidence=conf,
+                        detected_at=detected_at,
+                        idempotency_key=idem,
+                        snapshot_requested=jpeg_bytes is not None,
+                    )
+                except AuthError as exc:
+                    logger.error("Submission REJECTED — device revoked? %s", exc)
+                    continue
+                except RejectedError as exc:
+                    # Our payload or configuration is wrong. Retrying it
+                    # unchanged would fail identically, so say so loudly instead
+                    # of burying it in a retry loop.
+                    logger.error("Submission refused (fix configuration): %s", exc)
+                    continue
+                except AllClearError as exc:
+                    # Transient. Phase 3.5's queue is what will hold these; for
+                    # now the event is lost and the log says so plainly rather
+                    # than implying it was recorded.
+                    logger.error("Submission failed, EVENT LOST (no queue yet): %s", exc)
+                    continue
+
+                logger.info(
+                    "API OK — violation=%s %s hash=%s...",
+                    result.violation_id,
+                    "DUPLICATE" if result.duplicate else "created",
+                    result.event_hash[:12],
+                )
+
+                # ── Snapshot, if the server issued an upload URL ─────────────
+                #
+                # A failed image upload must never invalidate the violation.
+                # The record already exists and is sealed into the hash chain;
+                # a missing image is a degraded record, not a lost one.
+                if result.snapshot_upload and jpeg_bytes:
+                    try:
+                        client.upload_snapshot(result.snapshot_upload, jpeg_bytes)
+                        client.confirm_snapshot(result.violation_id)
+                        logger.info("Snapshot uploaded and confirmed.")
+                    except AllClearError as exc:
+                        logger.warning(
+                            "Snapshot failed for %s (the violation stands): %s",
+                            result.violation_id,
+                            exc,
+                        )
+
+                # ── SMS, and ONLY after a confirmed new record ───────────────
+                #
+                # This inverts the 2026-08-20 behaviour, where the SMS fired
+                # whether or not the write succeeded — a supervisor could be
+                # texted about an incident that existed nowhere. Every alert is
+                # now backed by a row.
+                #
+                # A duplicate sends nothing: the server already had the event,
+                # so a supervisor was already told, and re-texting on a retry
+                # would teach people to ignore the alerts.
+                #
+                # This is the INTERIM arrangement. Whether alerting should move
+                # server-side is still open (KNOWN_ISSUES finding 3) and is not
+                # decided here.
+                if TWILIO_ENABLED and result.should_alert:
+                    send_violation_sms(
+                        violation_type=v_type,
+                        camera_name="Webcam Dev Camera",
+                        snapshot_key=result.violation_id,
                     )
 
         cv2.imshow("All Clear — Detection", annotated)
@@ -232,6 +354,10 @@ def run_detection():
 
     cap.release()
     cv2.destroyAllWindows()
+    if client is not None:
+        # Stops the heartbeat thread, so the dashboard sees this device go
+        # stale rather than showing it as alive after the process is gone.
+        client.close()
     logger.info("Detection loop stopped cleanly.")
 
 

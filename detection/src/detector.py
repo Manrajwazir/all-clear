@@ -43,7 +43,15 @@ class PPEDetector:
         Returns a list of dicts with violation_type and confidence.
 
         Example return:
-            [{"violation_type": "no_helmet", "confidence": 0.87}, ...]
+            [{"violation_type": "no_hardhat", "confidence": 0.87}, ...]
+
+        ⚠ THE NORMALIZED NAMES MUST MATCH THE API'S violation_type ENUM EXACTLY.
+        The three produced here — no_hardhat, no_safety_vest, no_mask — are
+        exactly the first three values `violationSubmitSchema` accepts. Adding a
+        model class whose normalized name is not in that enum makes every
+        submission of that type fail validation at the API with a 400.
+        (This docstring previously said "no_helmet", which the code has never
+        produced; corrected 2026-08-31 while wiring up the API client.)
         """
         violations = []
         if result.boxes is None:

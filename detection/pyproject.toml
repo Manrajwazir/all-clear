@@ -8,8 +8,13 @@ dependencies = [
     "ultralytics",          # YOLOv8 — model inference
     "opencv-python",        # image/video frame handling
     "python-dotenv",        # load .env files
-    "supabase",             # Supabase client (DB + storage)
-    "boto3",                # AWS S3 client
+    "requests",             # All Clear device API client (api_client.py)
+    # supabase and boto3 are NOT on the violation path as of Phase 3 Step 3.4 —
+    # main.py reaches the database and S3 only through the API now. They remain
+    # declared because storage.py and tests/test_storage.py still use them
+    # directly. A deployed device does not need credentials for either.
+    "supabase",             # Supabase client — storage.py only
+    "boto3",                # AWS S3 / SES client — storage.py, alerts.py digest
     "twilio",               # SMS alerts
 ]
 
