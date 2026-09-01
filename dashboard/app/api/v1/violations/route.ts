@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { authenticateDevice, deviceAuthErrorBody } from "@/lib/device-auth";
+import { getBucketName, getS3Client } from "@/lib/s3";
+import {
+  SNAPSHOT_CONTENT_TYPE,
+  SNAPSHOT_UPLOAD_TTL_SECONDS,
+  snapshotKey,
+} from "@/lib/snapshot-key";
 import {
   VIOLATION_IP_LIMIT,
   VIOLATION_LIMIT,
@@ -246,7 +254,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 6. Answer ─────────────────────────────────────────────────────────
+    // ── 6. Presigned upload URL, only when the site opted in ──────────────
+    //
+    // The API never touches image bytes (ADR 0004). It hands back a URL that
+    // authorises exactly one PUT, to exactly one key, for five minutes, and the
+    // device uploads straight to S3.
+    //
+    // Issued on a DUPLICATE too, deliberately. A retry usually means the first
+    // attempt failed somewhere, and the upload is the part most likely to have
+    // been what failed. The key is deterministic, so re-uploading overwrites
+    // the same object rather than creating a second one.
+    //
+    // A FAILURE HERE MUST NOT FAIL THE REQUEST. The violation is already
+    // committed and sealed into the chain; ADR 0005 is database-first for
+    // exactly this reason. Losing an image is a degraded record. Turning a
+    // recorded violation into a 500 would make the device retry an event that
+    // already exists, and would lose the incident if the retry never lands.
+    let snapshotUpload: {
+      url: string;
+      expires_in: number;
+      content_type: string;
+    } | null = null;
+
+    if (body.snapshot_requested && row.snapshot_enabled) {
+      try {
+        const key = snapshotKey(row.org_id, row.site, row.violation_id);
+        snapshotUpload = {
+          url: await getSignedUrl(
+            getS3Client(),
+            new PutObjectCommand({
+              Bucket: getBucketName(),
+              Key: key,
+              ContentType: SNAPSHOT_CONTENT_TYPE,
+            }),
+            {
+              expiresIn: SNAPSHOT_UPLOAD_TTL_SECONDS,
+              // ⚠ WITHOUT THIS LINE, ContentType ABOVE IS DECORATIVE.
+              //
+              // A SigV4 presigned URL only commits the caller to headers named
+              // in SignedHeaders, and that defaults to `host` alone. Setting
+              // ContentType on the command without listing it here produces a
+              // URL that happily accepts text/html, or anything else, at a path
+              // the dashboard will later render as an image. Naming it here is
+              // what actually binds the signature to a JPEG upload.
+              //
+              // Caught by test-snapshot §2, which PUTs the same bytes with the
+              // wrong Content-Type and requires S3 to refuse.
+              signableHeaders: new Set(["content-type"]),
+            },
+          ),
+          expires_in: SNAPSHOT_UPLOAD_TTL_SECONDS,
+          content_type: SNAPSHOT_CONTENT_TYPE,
+        };
+      } catch (err) {
+        console.error(
+          "Presign failed for violation %s; the violation stands, the image does not:",
+          row.violation_id,
+          err,
+        );
+      }
+    }
+
+    // ── 7. Answer ─────────────────────────────────────────────────────────
     //
     // 201 for a row that was created, 200 for one that already existed.
     //
@@ -265,10 +334,13 @@ export async function POST(request: NextRequest) {
         event_hash: row.hash,
         received_at: row.received,
         duplicate: row.is_duplicate,
-        // Whether this site captures imagery at all. The presigned upload URL
-        // for sites that do arrives in step 3.3b; today a device learns the
-        // answer and holds its image.
+        // Whether this site captures imagery at all.
         snapshot_enabled: row.snapshot_enabled,
+        // Null unless the device asked for it AND the site opted in. When
+        // present: PUT the JPEG to `url` with Content-Type `content_type`,
+        // then POST /api/v1/violations/<id>/snapshot to confirm. The row's
+        // snapshot_s3_key stays null until that confirm succeeds.
+        snapshot_upload: snapshotUpload,
       },
       { status: row.is_duplicate ? 200 : 201, headers: NO_STORE },
     );
