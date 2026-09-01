@@ -61,6 +61,7 @@ from api_client import (
     new_idempotency_key,
     utc_now_iso,
 )
+from event_queue import EventQueue, QueueReplayer
 
 load_dotenv()
 
@@ -98,6 +99,14 @@ SNAPSHOT_MODE    = os.getenv("SNAPSHOT_MODE", "false").lower() in ("1", "true", 
 
 HEARTBEAT_SECONDS = int(os.getenv("HEARTBEAT_SECONDS", 30))
 
+# ── Outage queue (Phase 3, Step 3.5) ───────────────────────────────────────
+# Paths are relative to detection/, which is where this is run from. Both are
+# gitignored — queue.db holds real violation data and the images are real
+# imagery of real people.
+QUEUE_DB_PATH   = os.getenv("QUEUE_DB_PATH", "queue.db")
+QUEUE_IMAGE_DIR = Path(os.getenv("QUEUE_IMAGE_DIR", "queue_images"))
+REPLAY_SECONDS  = int(os.getenv("REPLAY_SECONDS", 30))
+
 API_ENABLED = bool(DEVICE_API_KEY)
 
 TWILIO_ENABLED = all([
@@ -130,31 +139,60 @@ def run_detection():
     # so it looked like it was working, and nothing was being recorded. Refusing
     # to start is far better than that.
     client = None
+    queue = None
+    replayer = None
+
     if API_ENABLED:
         client = AllClearClient(
             base_url=ALLCLEAR_API_URL,
             api_key=DEVICE_API_KEY,
             snapshot_mode=SNAPSHOT_MODE,
         )
+
+        # The queue opens BEFORE the key check, so that a device which cannot
+        # reach the API still has somewhere to put events. A site whose link is
+        # down at boot is the exact situation this exists for.
+        queue = EventQueue(QUEUE_DB_PATH)
+        QUEUE_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+        backlog = queue.counts()
+        if backlog["pending"]:
+            logger.info(
+                "Queue has %s event(s) waiting from a previous run.", backlog["pending"]
+            )
+        if backlog["dead"]:
+            logger.warning(
+                "Queue has %s event(s) the server permanently refused — "
+                "inspect %s, this usually means a misconfiguration.",
+                backlog["dead"],
+                QUEUE_DB_PATH,
+            )
+
         try:
             logger.info("Verifying device key against %s ...", ALLCLEAR_API_URL)
             client.verify_key()
             logger.info("Device key accepted.")
         except AuthError as exc:
+            # A rejected key is fatal: nothing this device queues will ever be
+            # accepted, so queueing would just fill a disk with events that can
+            # never be delivered.
             logger.error(
                 "Device key REJECTED — this device is unknown or revoked. %s", exc
             )
+            queue.close()
             return
         except AllClearError as exc:
-            logger.error(
-                "Could not reach the All Clear API at %s — %s. "
-                "Is the dashboard running (npm run dev)?",
+            # Unreachable is NOT fatal any more. This is the outage case, and
+            # the whole point of the queue is to keep watching through it.
+            logger.warning(
+                "Cannot reach the All Clear API at %s — %s. "
+                "Detection continues; events will queue and replay automatically.",
                 ALLCLEAR_API_URL,
                 exc,
             )
-            return
 
         client.start_heartbeat(HEARTBEAT_SECONDS)
+        replayer = QueueReplayer(queue, client, tick_seconds=REPLAY_SECONDS)
+        replayer.start()
 
     logger.info("Loading PPE model...")
     detector = PPEDetector(model_path=MODEL_PATH)
@@ -192,6 +230,9 @@ def run_detection():
     print(f"  Snapshots:    {snap}")
     sms_mode = "ON (after 201 only)" if TWILIO_ENABLED else "OFF (fill Twilio keys in .env)"
     print(f"  SMS alerts:   {sms_mode}")
+    if queue is not None:
+        c = queue.counts()
+        print(f"  Outage queue: {QUEUE_DB_PATH}  ({c['pending']} pending, {c['dead']} dead)")
     print("  Press  q or ESC  to quit  |  s  to save a snapshot")
     print("  NOTE: click the camera window first, THEN press q")
     print("=" * 62 + "\n")
@@ -262,12 +303,38 @@ def run_detection():
                 # site nothing wants the bytes, and JPEG-encoding every
                 # violation frame for nobody is pure waste.
                 jpeg_bytes = None
+                snapshot_path = None
                 if client.wants_snapshot():
                     ok, buffer = cv2.imencode(".jpg", frame)
                     if ok:
                         jpeg_bytes = buffer.tobytes()
+                        # Written to disk and referenced by PATH. The queue row
+                        # never carries image bytes — a queue holding megabytes
+                        # per event turns a long outage into a disk and memory
+                        # problem on a machine that has little of either.
+                        snapshot_path = str(QUEUE_IMAGE_DIR / f"{idem}.jpg")
+                        Path(snapshot_path).write_bytes(jpeg_bytes)
                     else:
                         logger.warning("JPEG encode failed — submitting without an image")
+
+                # ── ENQUEUE FIRST. This is the whole design. ─────────────────
+                #
+                # The event becomes durable on local disk BEFORE any network
+                # call. If the link is down, if the API is broken, if this
+                # process is killed one line from now — the violation survives
+                # and the replay thread will deliver it.
+                #
+                # Doing it the other way round, sending first and queueing on
+                # failure, loses everything that happens between the send and
+                # the failure being handled.
+                event_id = queue.enqueue(
+                    idempotency_key=idem,
+                    camera_id=CAMERA_ID,
+                    violation_type=v_type,
+                    confidence=conf,
+                    detected_at=detected_at,
+                    snapshot_path=snapshot_path,
+                )
 
                 try:
                     result = client.submit_violation(
@@ -279,19 +346,29 @@ def run_detection():
                         snapshot_requested=jpeg_bytes is not None,
                     )
                 except AuthError as exc:
+                    # Left pending with a backoff rather than killed: a device
+                    # revoked by mistake, or a key rotated mid-shift, should not
+                    # cost the violations detected in between.
                     logger.error("Submission REJECTED — device revoked? %s", exc)
+                    queue.mark_failed(event_id, f"auth: {exc}")
                     continue
                 except RejectedError as exc:
-                    # Our payload or configuration is wrong. Retrying it
-                    # unchanged would fail identically, so say so loudly instead
-                    # of burying it in a retry loop.
+                    # The server refuses this event on its merits. Retrying it
+                    # unchanged fails identically forever, so it is marked dead
+                    # — but KEPT, so a misconfiguration is discoverable instead
+                    # of silently eating every violation.
                     logger.error("Submission refused (fix configuration): %s", exc)
+                    queue.mark_dead(event_id, str(exc))
+                    if snapshot_path:
+                        Path(snapshot_path).unlink(missing_ok=True)
                     continue
                 except AllClearError as exc:
-                    # Transient. Phase 3.5's queue is what will hold these; for
-                    # now the event is lost and the log says so plainly rather
-                    # than implying it was recorded.
-                    logger.error("Submission failed, EVENT LOST (no queue yet): %s", exc)
+                    # The outage case. Nothing is lost — it is already on disk.
+                    logger.warning(
+                        "Offline; event queued for replay (%s pending): %s",
+                        queue.counts()["pending"],
+                        exc,
+                    )
                     continue
 
                 logger.info(
@@ -317,6 +394,11 @@ def run_detection():
                             result.violation_id,
                             exc,
                         )
+
+                # Delivered. Mark it and drop the local image copy.
+                queue.mark_sent(event_id, result.violation_id)
+                if snapshot_path:
+                    Path(snapshot_path).unlink(missing_ok=True)
 
                 # ── SMS, and ONLY after a confirmed new record ───────────────
                 #
@@ -354,10 +436,22 @@ def run_detection():
 
     cap.release()
     cv2.destroyAllWindows()
+    if replayer is not None:
+        replayer.stop()
     if client is not None:
         # Stops the heartbeat thread, so the dashboard sees this device go
         # stale rather than showing it as alive after the process is gone.
         client.close()
+    if queue is not None:
+        left = queue.counts()
+        if left["pending"]:
+            # Said plainly on the way out. These are real violations that have
+            # not reached the server; they will go on the next start.
+            logger.warning(
+                "%s event(s) still queued — they will replay next start.",
+                left["pending"],
+            )
+        queue.close()
     logger.info("Detection loop stopped cleanly.")
 
 

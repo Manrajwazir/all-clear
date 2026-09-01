@@ -3,6 +3,17 @@ venv
 __pycache__
 *.pyc
 detection/models/*.pt
+
+# Outage queue (Phase 3, Step 3.5).
+#
+# NOT build artifacts — this is real data and it must never reach a repository.
+# queue.db holds undelivered violation records; queue_images/ holds JPEGs of
+# actual people on an actual site. A committed queue_images/ is a personal
+# information disclosure, not a messy diff.
+detection/queue.db
+detection/queue.db-wal
+detection/queue.db-shm
+detection/queue_images/
 .vscode
 .idea
 .venv
