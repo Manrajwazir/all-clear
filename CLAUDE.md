@@ -26,7 +26,10 @@ Two repositories, and work spans both:
 `main` on this repo is the **static marketing site** (allclearsafety.ca) and has
 no database. `staging` is the real system. Do not confuse them.
 
-**Skills that save the user re-explaining things** (`.claude/skills/`):
+**Skills that save the user re-explaining things.** These live at
+`~/.claude/skills/` (user level), so they work in every project on this machine,
+not just this repo. Each carries an all-clear-specific section that only applies
+when working under `D:ll-clear\`:
 
 | Skill | Use it when |
 |---|---|
