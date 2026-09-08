@@ -8,10 +8,10 @@ import {
 } from "@/lib/device-key-format";
 import {
   PROVISION_LIMIT,
-  enforceRateLimit,
   getClientIp,
   ipBucket,
 } from "@/lib/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit-durable";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { provisionDeviceSchema } from "@/lib/validations";
 

@@ -11,7 +11,7 @@
  *   layer 2, which is exactly what makes it safe as a pre-filter — if it says
  *   no, layer 2 would have said no too, so we can reject without a round trip.
  *
- * LAYER 2 — durable fixed window in Postgres (`checkDurableRateLimit`)
+ * LAYER 2 — durable fixed window in Postgres — lives in `rate-limit-durable.ts`
  *
  *   `check_rate_limit()` from migration 006, backed by the
  *   `rate_limit_counters` table. Survives cold starts, shared across every
@@ -22,7 +22,10 @@
  *   stop abuse and runaway retry loops, they do not meter billing, and a fixed
  *   window is one atomic upsert instead of a range scan.
  *
- * Use `enforceRateLimit()` to run both in the right order.
+ * Use `enforceRateLimit()` from `rate-limit-durable.ts` to run both in the
+ * right order. Layer 2 is a separate file because it reaches the service-role
+ * client, which is device-API-only; this file touches no database and is safe
+ * anywhere. See that file's header.
  *
  * Upstash/Redis was considered and rejected 2026-08-28: a new vendor for one
  * counter, and its free tier is tight against 30-second heartbeats from every
@@ -30,14 +33,14 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-interface RateLimitConfig {
+export interface RateLimitConfig {
   /** Maximum number of requests allowed in the window */
   limit: number;
   /** Window duration in seconds */
   windowSeconds: number;
 }
 
-interface RateLimitResult {
+export interface RateLimitResult {
   /** Whether the request is allowed */
   allowed: boolean;
   /** Number of remaining requests in the current window */
@@ -119,70 +122,6 @@ export function checkRateLimit(key: string, config: RateLimitConfig): RateLimitR
     remaining: config.limit - valid.length,
     retryAfter: 0,
   };
-}
-
-// ─── Layer 2: the durable limiter ───────────────────────────────────
-
-/**
- * Check the durable Postgres counter.
- *
- * Counts the call it is asked about, so `allowed: false` means THIS request is
- * over the limit — not that the next one would be.
- *
- * FAILS OPEN on a database error, deliberately. A rate limiter is a control on
- * abuse, not a safety-critical path; if Postgres is unreachable the endpoint
- * itself is about to fail anyway, and turning a database blip into a wall of
- * 429s would stop every real device on every site from reporting. Layer 1 is
- * still in front. The failure is logged so it is visible rather than silent.
- */
-export async function checkDurableRateLimit(
-  bucket: string,
-  config: RateLimitConfig,
-): Promise<RateLimitResult> {
-  // Imported lazily so this module stays importable from contexts that have no
-  // service-role key — the pilot-request route uses only layer 1.
-  const { createServiceRoleClient } = await import("./supabase/service-role");
-
-  try {
-    const { data, error } = await createServiceRoleClient().rpc("check_rate_limit", {
-      p_bucket: bucket,
-      p_limit: config.limit,
-      p_window_seconds: config.windowSeconds,
-    });
-
-    if (error || !data || data.length === 0) {
-      console.error("Durable rate limit check failed, failing open:", error?.message);
-      return { allowed: true, remaining: 0, retryAfter: 0 };
-    }
-
-    const row = data[0];
-    return {
-      allowed: row.allowed,
-      remaining: 0, // the SQL function does not report a remaining count
-      retryAfter: row.allowed ? 0 : Math.max(row.retry_after_seconds, 1),
-    };
-  } catch (err) {
-    console.error("Durable rate limit check threw, failing open:", err);
-    return { allowed: true, remaining: 0, retryAfter: 0 };
-  }
-}
-
-/**
- * Run both layers in the correct order: memory first as a free reject, then
- * Postgres as the authority.
- *
- * Layer 1 only ever sees a subset of the traffic layer 2 sees, so a layer-1
- * rejection is always one layer 2 would also have made. That is what makes the
- * short-circuit safe rather than merely fast.
- */
-export async function enforceRateLimit(
-  bucket: string,
-  config: RateLimitConfig,
-): Promise<RateLimitResult> {
-  const memory = checkRateLimit(bucket, config);
-  if (!memory.allowed) return memory;
-
-  return checkDurableRateLimit(bucket, config);
 }
 
 // ─── Bucket naming ──────────────────────────────────────────────────

@@ -4,11 +4,11 @@ import { authenticateDevice, deviceAuthErrorBody } from "@/lib/device-auth";
 import {
   HEARTBEAT_IP_LIMIT,
   HEARTBEAT_LIMIT,
-  enforceRateLimit,
   getClientIp,
   ipBucket,
   keyBucket,
 } from "@/lib/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit-durable";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { heartbeatSchema } from "@/lib/validations";
 

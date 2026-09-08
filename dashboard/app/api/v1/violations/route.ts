@@ -12,11 +12,11 @@ import {
 import {
   VIOLATION_IP_LIMIT,
   VIOLATION_LIMIT,
-  enforceRateLimit,
   getClientIp,
   ipBucket,
   keyBucket,
 } from "@/lib/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit-durable";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { violationSubmitSchema } from "@/lib/validations";
 

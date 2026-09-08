@@ -5,11 +5,11 @@ import { authenticateDevice, deviceAuthErrorBody } from "@/lib/device-auth";
 import {
   VIOLATION_IP_LIMIT,
   VIOLATION_LIMIT,
-  enforceRateLimit,
   getClientIp,
   ipBucket,
   keyBucket,
 } from "@/lib/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit-durable";
 import { getBucketName, getS3Client } from "@/lib/s3";
 import { snapshotKey } from "@/lib/snapshot-key";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
