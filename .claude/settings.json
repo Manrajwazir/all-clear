@@ -1,0 +1,59 @@
+{
+  "$comment": [
+    "Project settings for all-clear. Created 2026-09-07.",
+    "",
+    "permissions.allow lists commands that only READ. Anything that writes to a",
+    "file, a database, a repo or a remote is deliberately absent so it still",
+    "prompts. The rule of thumb: if getting it wrong is undoable, it prompts.",
+    "",
+    "Deliberately NOT allowlisted, even though they are run constantly:",
+    "  git commit / push        outward-facing and hard to undo",
+    "  npx supabase db push     changes a live database",
+    "  psql -f                  same",
+    "  rm                       ask, every time",
+    "",
+    "Run /fewer-permission-prompts after a few sessions to extend this from your",
+    "actual transcripts rather than from guesses."
+  ],
+
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git remote -v)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(sed -n:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(npx next lint:*)",
+      "Bash(npx supabase migration list:*)",
+      "Bash(bash scripts/test-db-connection.sh)",
+      "Read(//d/all-clear/**)",
+      "Glob(//d/all-clear/**)",
+      "Grep(//d/all-clear/**)"
+    ],
+    "deny": [
+      "Read(//d/all-clear/**/.env)",
+      "Read(//d/all-clear/**/.env.local)",
+      "Read(//c/Users/manra/.allclear-db-url)",
+      "Read(//c/Users/manra/.allclear-sandbox.env)"
+    ]
+  },
+
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude/statusline.sh"
+  }
+}

@@ -6,6 +6,48 @@ This file provides guidance to Claude when working with this repository.
 
 Always read this file first. It reflects the actual current state of the project.
 
+---
+
+## ⏱ Where the work is right now — read this before anything else
+
+**This file says what is TRUE. It does not say what is NEXT.**
+
+> **What to do next lives in `D:ll-clearll-clear-internal\docs\START_HERE.md`,
+> the "Right now" section.** Read that first, every session. It is kept current
+> and is the designed pick-up point.
+
+Two repositories, and work spans both:
+
+| Repo | Branch | Holds |
+|---|---|---|
+| `D:ll-clearll-clear` (this one) | `staging` | the code |
+| `D:ll-clearll-clear-internal` | `main` | migrations, docs, plans, sandbox scripts |
+
+`main` on this repo is the **static marketing site** (allclearsafety.ca) and has
+no database. `staging` is the real system. Do not confuse them.
+
+**Skills that save the user re-explaining things** (`.claude/skills/`):
+
+| Skill | Use it when |
+|---|---|
+| `pickup` | starting cold — reports where things stand and what is blocked |
+| `commit-report` | after any commit — the WHAT / WHY / HOW / WHAT-IF / YOUR-TEST format this project expects |
+| `handoff` | ending a session — writes state into the project's own docs and commits |
+
+**Standing rules that are not obvious from the code:**
+
+- **Migrations are applied by Manraj, never by Claude.** Claude writes and
+  dry-runs them; a human runs `npx supabase db push`.
+- Migrations live in `all-clear-internal/supabase/migrations/`. **This repo's
+  `docs/` is gitignored and holds STALE copies of `000`–`004` — do not apply
+  them.**
+- Never resolve an open question by picking an answer. Record it as undecided.
+- Don't mark something complete because a document says so — this project's docs
+  have contradicted reality before. Verify, and say which you did.
+
+---
+
+
 
 
 ---
