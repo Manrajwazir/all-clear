@@ -236,21 +236,30 @@ D:\All Clear\All Clear\
 
 â””â”€â”€ docs/
 
-    â”œâ”€â”€ dashboard-design.md  # design system spec (Five Commandments)
-
-    â”œâ”€â”€ PHASE_4_HANDOFF.md   # dashboard setup + deploy instructions
-
-    â”œâ”€â”€ schema.sql           # full Supabase schema (sites, cameras, violations)
-
-    â”œâ”€â”€ DEEP_DIVE.md         # detailed code walkthrough
-
-    â”œâ”€â”€ NOTES.md             # learning log
-
-    â”œâ”€â”€ PROOF.md             # market + regulatory validation
-
-    â””â”€â”€ QUESTIONS.md         # open research backlog
+    â””â”€â”€ migrations/          # âš  STALE COPIES of 000-004 only. See below.
 
 ```
+
+### âš  `docs/` is gitignored and mostly does not exist (corrected 2026-09-07)
+
+This section used to list `dashboard-design.md`, `PHASE_4_HANDOFF.md`,
+`schema.sql`, `DEEP_DIVE.md`, `NOTES.md`, `PROOF.md` and `QUESTIONS.md`.
+**None of them are here.** `.gitignore` line 20 is `/docs`, so nothing in this
+folder is tracked by any repository — which is how those files were lost.
+
+`docs/migrations/` still holds copies of `000`-`004`. They are **stale and must
+not be applied**: `005`, `006` and `007` are missing entirely, and the live
+schema has moved well past them.
+
+**The real home for all of it is the `all-clear-internal` repository:**
+
+| What you want | Where it actually is |
+|---|---|
+| Migrations | `all-clear-internal/supabase/migrations/` (timestamped; applied with `npx supabase db push`) |
+| Reproducible schema | `all-clear-internal/migrations/baseline/baseline_public.sql` |
+| Verification suites | `all-clear-internal/migrations/` |
+| Design system | `all-clear-internal/docs/dashboard-design.md` |
+| Everything else | `all-clear-internal/docs/` |
 
 
 
@@ -368,9 +377,21 @@ Supabase Realtime subscription (WebSocket)
 
 
 
-- `SUPABASE_SERVICE_ROLE_KEY` only in Python backend â€” bypasses RLS, never in frontend
+- `SUPABASE_SERVICE_ROLE_KEY` lives in the **Next.js server**, not the Python service
+  *(changed in Phase 3, corrected here 2026-09-07)*. It bypasses RLS, so exactly one
+  module creates a client with it: `dashboard/lib/supabase/service-role.ts`, guarded by
+  `import "server-only"` so importing it into a browser component is a **build error**
+  rather than a leaked key. Reachable only from `lib/device-auth.ts`, the four
+  `/api/v1/` routes, and layer 2 of `lib/rate-limit.ts`.
+  A device authenticates with its own API key, not a Supabase session, so there is no
+  RLS identity to attach and RLS cannot be the control for those routes.
+  **This was a net reduction in exposure:** the key used to sit on every field device.
+  It is still declared in `detection/.env` because `storage.py` and its tests read it,
+  but `main.py` no longer imports `storage.py` — the violation path goes through
+  `api_client.py` with a device key. `detection/.env.example` says it plainly:
+  a real deployed device should not have it set.
 
-- `SUPABASE_ANON_KEY` only in Next.js dashboard â€” respects RLS
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the browser â€” respects RLS
 
 - S3 bucket is **private** â€” `/api/signed-url` route generates 1-hour pre-signed URLs
 
@@ -414,7 +435,10 @@ Realtime enabled: `alter publication supabase_realtime add table violations;`
 
 
 
-Full schema in `docs/schema.sql`.
+Full schema: `all-clear-internal/migrations/baseline/baseline_public.sql` — a
+`pg_dump --schema-only` of the live database, verified against the migrations with
+zero drift (2026-09-06). `docs/schema.sql` no longer exists; see the note under the
+repository layout above.
 
 
 
@@ -490,7 +514,7 @@ the same commit.
 
 |---|---|
 
-| No RLS on Supabase tables | Add row-level security policies |
+| ~~No RLS on Supabase tables~~ | ✅ **Wrong — corrected 2026-09-07.** RLS has been live since migrations `002`/`002b`: an unauthenticated anon-key request returns HTTP 200 with **zero rows** on all eight tenant tables. What is genuinely open is that it has never been tested *adversarially* — the database holds one organization, so cross-tenant isolation is unproven. Tracked as step C4 in `all-clear-internal/docs/CMPUT401_HANDOVER_PLAN.md` |
 
 | Single hardcoded CAMERA_ID | Multi-tenant camera management |
 
