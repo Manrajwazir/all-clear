@@ -2,8 +2,32 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+
+/* ================================================================
+   Password sign-in — OFF unless explicitly enabled
+   ================================================================
+
+   Production authenticates by magic link and its users have no password set,
+   so this stays off there and the field never renders.
+
+   It exists for the CMPUT 401 sandbox, where magic link fails twice over:
+   Supabase's built-in SMTP is rate-limited per project and seven students share
+   one, and `signInWithOtp` defaults to shouldCreateUser:true — so a student who
+   types their own university address gets a new auth.users row with no matching
+   public.users row, get_my_org_id() returns NULL, RLS filters everything, and
+   the dashboard renders empty with no error. A fixed set of seeded accounts and
+   no signup path makes that impossible.
+
+   NEXT_PUBLIC_ is inlined at build time, so this is a compile-time switch: with
+   the variable unset the password branch is not reachable in the shipped bundle.
+
+   Covered by all-clear-internal/sandbox/login_ui_tests.py, which asserts BOTH
+   shapes — that the field is present when on, and absent when off.             */
+const PASSWORD_LOGIN_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_PASSWORD_LOGIN === "true";
 
 /* ================================================================
    Particle Engine — renders text as flowing particle formations
@@ -149,7 +173,16 @@ export default function LoginPage() {
   const wordIdxRef = useRef(0);
   const mouseRef = useRef({ x: 0, y: 0, down: false, right: false });
 
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  // Password is the DEFAULT when the gate is on, not an option behind a click.
+  // The gate is only ever enabled in an environment where magic link does not
+  // work, so landing on the magic-link form there is friction for no reason.
+  // Magic link stays reachable via the toggle.
+  const [mode, setMode] = useState<"magic" | "password">(
+    PASSWORD_LOGIN_ENABLED ? "password" : "magic",
+  );
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -159,6 +192,23 @@ export default function LoginPage() {
     setStatus("sending");
     setError(null);
     const supabase = createClient();
+
+    if (PASSWORD_LOGIN_ENABLED && mode === "password") {
+      const { error: err } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (err) { setStatus("error"); setError(err.message); return; }
+      // signInWithPassword returns the session immediately -- there is no
+      // /auth/callback round-trip as there is for a magic link. The refresh is
+      // required, not cosmetic: without it the server components re-render
+      // against the stale cookie and the user lands back on a page that still
+      // believes they are signed out.
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
     const { error: err } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
@@ -314,7 +364,9 @@ export default function LoginPage() {
                 Sign in
               </h2>
               <p className="text-[12px] text-text-secondary mt-1.5 leading-relaxed">
-                Enter your email to receive a one-time sign-in link.
+                {PASSWORD_LOGIN_ENABLED && mode === "password"
+                  ? "Enter your email and password."
+                  : "Enter your email to receive a one-time sign-in link."}
               </p>
             </div>
 
@@ -347,9 +399,37 @@ export default function LoginPage() {
                 />
               </div>
 
+              {PASSWORD_LOGIN_ENABLED && mode === "password" && (
+                <div>
+                  <label
+                    htmlFor="login-password"
+                    className="block text-[10px] tracking-[0.12em] uppercase text-text-tertiary mb-2"
+                  >
+                    Password
+                  </label>
+                  <input
+                    id="login-password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={status === "sending"}
+                    placeholder="Your password"
+                    className={cn(
+                      "w-full rounded-lg px-4 py-3",
+                      "text-[13px] text-text-primary placeholder:text-text-tertiary",
+                      "bg-surface-inset ring-1 ring-inset ring-white/[0.06]",
+                      "focus:outline-none focus:ring-status-safe/40",
+                      "disabled:opacity-50 transition-all duration-200"
+                    )}
+                  />
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={status === "sending" || status === "sent"}
+                disabled={status === "sending" || (mode === "magic" && status === "sent")}
                 className={cn(
                   "w-full rounded-lg py-3 text-[12px] tracking-[0.06em] font-semibold",
                   "transition-all duration-200",
@@ -359,15 +439,36 @@ export default function LoginPage() {
                     : "bg-status-safe text-text-on-status hover:brightness-110 shadow-glow-safe"
                 )}
               >
-                {status === "sending"
-                  ? "Sending..."
-                  : status === "sent"
-                    ? "Check your inbox"
-                    : "Send magic link"}
+                {PASSWORD_LOGIN_ENABLED && mode === "password"
+                  ? status === "sending"
+                    ? "Signing in..."
+                    : "Sign in"
+                  : status === "sending"
+                    ? "Sending..."
+                    : status === "sent"
+                      ? "Check your inbox"
+                      : "Send magic link"}
               </button>
 
+              {PASSWORD_LOGIN_ENABLED && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode(mode === "magic" ? "password" : "magic");
+                    setStatus("idle");
+                    setError(null);
+                    setPassword("");
+                  }}
+                  className="w-full text-center text-[11px] text-text-tertiary hover:text-text-secondary transition-colors duration-200"
+                >
+                  {mode === "magic"
+                    ? "Sign in with a password instead"
+                    : "Email me a sign-in link instead"}
+                </button>
+              )}
+
               {/* Status messages */}
-              {status === "sent" && (
+              {status === "sent" && mode === "magic" && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-status-safe/[0.08] ring-1 ring-inset ring-status-safe/10">
                   <span className="text-status-safe text-[14px] mt-[1px]">✓</span>
                   <p className="text-[11px] text-status-safe/80 leading-relaxed">
