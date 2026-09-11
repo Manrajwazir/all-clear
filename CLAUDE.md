@@ -606,6 +606,14 @@ The canonical list for each service is its `.env.example`. A variable the code
 reads and the example omits is the defect that broke signed URLs; add both in
 the same commit.
 
+**The reverse is deliberate here — do not "fix" it.** `dashboard/.env.local`
+holds more variables than `.env.local.example` lists: `UPSTASH_*`, `SES_*`,
+`ASSESSMENT_*`. That is not drift. **`main` and `staging` are different
+applications** — `main` is the static marketing site, `staging` is the real
+system — and the single local file carries the union of both so switching
+branches does not mean re-collecting credentials. Confirmed by Manraj
+2026-09-10. Leave them.
+
 
 
 ---
