@@ -47,11 +47,72 @@ when working under `D:ll-clear\`:
 - Never resolve an open question by picking an answer. Record it as undecided.
 - Don't mark something complete because a document says so — this project's docs
   have contradicted reality before. Verify, and say which you did.
+- **The executable check comes first.** Write the thing that fails before the
+  code that makes it pass. Not a style preference — see the section below.
 
 ---
 
+## HARD RULE — the executable check is written first
 
+**Write the check that fails. Watch it fail. Then write the code that makes it
+pass.**
 
+**Why, in Manraj's words (2026-09-10):** *"if we do tests second we risk testing
+what we did technically and not the intention."* That is exactly the failure. A
+check written after the code is written by someone who already knows how the code
+works, so it walks the paths the code actually takes. It confirms the
+implementation. It cannot tell you the implementation solved the wrong problem,
+because it was derived from the implementation.
+
+A check written first is derived from the **intent**, because the implementation
+does not exist yet to copy from.
+
+This project has already been bitten by the general version of this. Every
+structural count matched after the sandbox restore and the security posture was
+still wrong — `anon` could still execute `ingest_violation`. The counts were
+checking what had been done. Nobody had written down what was supposed to be
+true.
+
+### "Test" means executable, not necessarily a test framework
+
+**There is no test framework in this repo** — no vitest, no jest, no playwright,
+nothing in `package.json`. Establishing one is deliberately left to the CMPUT 401
+students (landmine #7). So the rule is *not* "write a unit test", which would be
+impossible today. It is:
+
+> Write the smallest thing that **runs, and fails, for the right reason** —
+> before the code.
+
+In this project that has meant:
+
+| Form | Example |
+|---|---|
+| A script asserting against a live database | `all-clear-internal/sandbox/rls_tests.py` — 17 assertions over the real auth endpoint |
+| A script scanning text for banned patterns | `all-clear-internal/scripts/check-copy.py` |
+| `npx tsc --noEmit` and `next build` | the check that the trimmed console tree stands alone |
+| A curl or node script hitting a route | for API behaviour, before the route exists |
+
+When the students establish a framework, unit tests become the default form. The
+rule does not change; only the form does.
+
+### What this looks like in practice
+
+1. State the intent in one sentence, out loud, before writing anything.
+2. Write the check. **Run it. It must fail** — and read the failure. A check that
+   passes before the code exists is testing nothing, and that happens more often
+   than anyone expects.
+3. Write the code.
+4. Run the check. It passes.
+5. Report both runs. "It failed like this, then passed" is the evidence. "Tests
+   pass" on its own is not, because it is also what you would say if the check
+   never ran.
+
+### The honest limit of this rule
+
+Unlike `check-copy.py`, which is enforced by a hook and cannot be argued with,
+**this rule is a discipline.** Nothing mechanically stops code being written
+first. It holds only because it is written down here and because step 5 makes
+skipping it visible — if there is no failing run to report, it was not followed.
 
 ---
 
