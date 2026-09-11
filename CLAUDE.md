@@ -168,8 +168,8 @@ violations (missing hard hats, vests, masks) in real time. When a violation is c
 
 | Phase 4 â€” Supervisor Dashboard | ✅ Done | Next.js 15 + Geist + shadcn + Supabase Realtime + pre-signed S3 URLs â€” deployed on Vercel |
 
-| Phase 3.5 â€” Outage queue | âœ… Done | `event_queue.py` â€” enqueue before sending, so an internet outage cannot silently hole the record |
-| Phase 5 â€” Polish for Demo Day | ðŸ”œ Next | **Partly done already:** RLS âœ…, domain âœ… (`allclearsafety.ca` live on `main`), landing page âœ… first pass. Remaining: demo-mode polish, and the `staging` â†’ `main` promotion path in `all-clear-internal/docs/NEXT_PHASE.md` |
+| Phase 3.5 â€” Outage queue | ✅ Done | `event_queue.py` â€” enqueue before sending, so an internet outage cannot silently hole the record |
+| Phase 5 â€” Polish for Demo Day | 🔜 Next | **Partly done already:** RLS ✅, domain ✅ (`allclearsafety.ca` live on `main`), landing page ✅ first pass. Remaining: demo-mode polish, and the `staging` â†’ `main` promotion path in `all-clear-internal/docs/NEXT_PHASE.md` |
 
 
 
