@@ -168,7 +168,8 @@ violations (missing hard hats, vests, masks) in real time. When a violation is c
 
 | Phase 4 â€” Supervisor Dashboard | ✅ Done | Next.js 15 + Geist + shadcn + Supabase Realtime + pre-signed S3 URLs â€” deployed on Vercel |
 
-| Phase 5 â€” Polish for Demo Day | ðŸ”œ Next | Landing page, RLS, demo mode polish, domain |
+| Phase 3.5 â€” Outage queue | âœ… Done | `event_queue.py` â€” enqueue before sending, so an internet outage cannot silently hole the record |
+| Phase 5 â€” Polish for Demo Day | ðŸ”œ Next | **Partly done already:** RLS âœ…, domain âœ… (`allclearsafety.ca` live on `main`), landing page âœ… first pass. Remaining: demo-mode polish, and the `staging` â†’ `main` promotion path in `all-clear-internal/docs/NEXT_PHASE.md` |
 
 
 
@@ -630,7 +631,7 @@ branches does not mean re-collecting credentials. Confirmed by Manraj
 
 | ~~No RLS on Supabase tables~~ | ✅ **Wrong — corrected 2026-09-07.** RLS has been live since migrations `002`/`002b`: an unauthenticated anon-key request returns HTTP 200 with **zero rows** on all eight tenant tables. What is genuinely open is that it has never been tested *adversarially* — the database holds one organization, so cross-tenant isolation is unproven. Tracked as step C4 in `all-clear-internal/docs/CMPUT401_HANDOVER_PLAN.md` |
 
-| Single hardcoded CAMERA_ID | Multi-tenant camera management |
+| ~~Single hardcoded CAMERA_ID~~ | ✅ **Not a gap — corrected 2026-09-11.** `CAMERA_ID` is `os.getenv("CAMERA_ID", ...)` and staying in config is a **considered position**, documented at `detection/src/main.py:80-88`. It is a *selector, not a credential*: it names which camera row this process reports against, it is not secret, and the server independently rejects any camera not at this device's own site. What left the device in Phase 3 were the **secrets** — the service-role key and the S3 keys. |
 
 | No multi-recipient SMS | Add to settings page |
 
@@ -638,7 +639,7 @@ branches does not mean re-collecting credentials. Confirmed by Manraj
 
 | Worker consent / PIPA | Required before ANY pilot |
 
-| No retry queue (S3/Twilio down) | Add queue + retry |
+| ~~No retry queue (S3/Twilio down)~~ | ✅ **Built — corrected 2026-09-11.** `detection/src/event_queue.py` (`EventQueue`, `QueueReplayer`), shipped as Phase 3.5 in commit `61cb190` and imported by `main.py`. The rule is **enqueue before sending**: the event hits local disk first, then the network call goes out. Sites lose internet, and a compliance record with unexplained gaps cannot distinguish "the site was safe" from "the system was not watching". |
 
 | Stub pages (cameras, history, reports, settings) | Build in Phase 5 |
 
