@@ -12,16 +12,22 @@ Always read this file first. It reflects the actual current state of the project
 
 **This file says what is TRUE. It does not say what is NEXT.**
 
-> **What to do next lives in `D:ll-clearll-clear-internal\docs\START_HERE.md`,
-> the "Right now" section.** Read that first, every session. It is kept current
-> and is the designed pick-up point.
+> **What to do next lives in `all-clear-internal/START_HERE.md`** -- at the repo
+> ROOT, not in `docs/`. Read that first, every session.
+>
+> That repo files documents by **how they change**: `docs/active/` carries state,
+> `docs/reference/` describes what is and may contain no status markers,
+> `docs/records/` holds dated snapshots that are appended to and never edited,
+> and `docs/decisions/` holds ADRs. **One document owns any given piece of
+> mutable state; everything else links to it.** `scripts/audit-docs.py` enforces
+> both rules.
 
 Two repositories, and work spans both:
 
 | Repo | Branch | Holds |
 |---|---|---|
-| `D:ll-clearll-clear` (this one) | `staging` | the code |
-| `D:ll-clearll-clear-internal` | `main` | migrations, docs, plans, sandbox scripts |
+| `D:/all-clear/all-clear` (this one) | `staging` | the code |
+| `D:/all-clear/all-clear-internal` | `main` | migrations, docs, plans, sandbox scripts |
 
 `main` on this repo is the **static marketing site** (allclearsafety.ca) and has
 no database. `staging` is the real system. Do not confuse them.
@@ -29,7 +35,7 @@ no database. `staging` is the real system. Do not confuse them.
 **Skills that save the user re-explaining things.** These live at
 `~/.claude/skills/` (user level), so they work in every project on this machine,
 not just this repo. Each carries an all-clear-specific section that only applies
-when working under `D:ll-clear\`:
+when working under `D:/all-clear\`:
 
 | Skill | Use it when |
 |---|---|
