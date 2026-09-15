@@ -28,6 +28,7 @@ import threading
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 import requests
 
@@ -117,6 +118,54 @@ class SubmitResult:
         return not self.duplicate
 
 
+#: Hosts where plaintext HTTP is tolerated. Loopback only. A LAN address is
+#: NOT on this list on purpose -- "it's just the local network" is the exact
+#: assumption that puts a bearer token on a shared site wifi in cleartext.
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "[::1]"})
+
+
+def _require_secure_transport(base_url: str) -> None:
+    """
+    Refuse to build a client that would send the device API key in cleartext.
+
+    Every request this class makes carries `Authorization: Bearer <device key>`,
+    and that key is the device's whole identity -- it is what lets a caller file
+    violations against this company's site. `ALLCLEAR_API_URL` is set by whoever
+    installs the device, so the scheme is an install-time input, and until now
+    nothing checked it. `http://` was accepted silently.
+
+    Checked here in the constructor rather than in `_post`, so a misconfigured
+    device fails at startup with a readable message instead of leaking the key
+    on its first real violation.
+    """
+    parsed = urlsplit(base_url)
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(
+            "ALLCLEAR_API_URL must start with https:// -- got %r. "
+            "A bare host with no scheme is also refused, because urlsplit "
+            "reads it as a path and the request would fail later and less "
+            "clearly." % (base_url,)
+        )
+
+    if parsed.scheme == "https":
+        return
+
+    # hostname is lowercased and strips any :port and userinfo. Comparing it
+    # against a set, rather than using startswith(), is deliberate:
+    # "localhost.evil.example.com" starts with "localhost".
+    if parsed.hostname in _LOOPBACK_HOSTS:
+        return
+
+    raise ValueError(
+        "ALLCLEAR_API_URL uses plaintext http:// to %r. The device API key "
+        "travels in an Authorization header on every request and would cross "
+        "the site network in cleartext. Use https://. Plain http is permitted "
+        "only for loopback (localhost, 127.0.0.1) during local development."
+        % (parsed.hostname,)
+    )
+
+
 def new_idempotency_key() -> str:
     """
     Mint the key that makes a retry safe.
@@ -169,6 +218,8 @@ class AllClearClient:
             raise ValueError("ALLCLEAR_API_URL is not set")
         if not api_key:
             raise ValueError("DEVICE_API_KEY is not set")
+
+        _require_secure_transport(base_url)
 
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
