@@ -78,6 +78,15 @@ DEBOUNCE_F    = int(os.getenv("DEBOUNCE_FRAMES", 5))
 COOLDOWN_S    = int(os.getenv("COOLDOWN_SECONDS", 60))
 CAMERA_INDEX  = 0   # 0 = default webcam; swap for RTSP URL string for IP camera
 
+# Camera backend: DirectShow is far more reliable than the default MSMF on
+# Windows for USB webcams. We try DSHOW first and fall back automatically.
+CAMERA_BACKEND = os.getenv("CAMERA_BACKEND", "DSHOW").upper()
+_BACKEND_MAP = {
+    "DSHOW": cv2.CAP_DSHOW,
+    "MSMF":  cv2.CAP_MSMF,
+    "ANY":   cv2.CAP_ANY,     # let OpenCV pick
+}
+
 # Which camera this device is watching.
 #
 # CAMERA_ID STAYS IN CONFIG, and that is a considered position rather than an
@@ -203,16 +212,37 @@ def run_detection():
         cooldown_seconds=COOLDOWN_S
     )
 
-    logger.info(f"Opening camera {CAMERA_INDEX}...")
-    cap = cv2.VideoCapture(CAMERA_INDEX)
+    # ── Open the camera, trying backends in preference order ─────────────
+    preferred = _BACKEND_MAP.get(CAMERA_BACKEND, cv2.CAP_DSHOW)
+    fallback  = cv2.CAP_MSMF if preferred == cv2.CAP_DSHOW else cv2.CAP_DSHOW
+    active_backend = preferred
+
+    logger.info(
+        "Opening camera %s with %s backend...",
+        CAMERA_INDEX,
+        CAMERA_BACKEND,
+    )
+    cap = cv2.VideoCapture(CAMERA_INDEX, preferred)
+
+    if not cap.isOpened():
+        logger.warning(
+            "%s backend failed — trying fallback...", CAMERA_BACKEND
+        )
+        cap = cv2.VideoCapture(CAMERA_INDEX, fallback)
+        active_backend = fallback
 
     if not cap.isOpened():
         logger.error(
-            "Could not open camera. "
+            "Could not open camera with any backend. "
             "Windows fix: Settings → Privacy & Security → Camera → "
             "Allow desktop apps to access your camera."
         )
         return
+
+    logger.info(
+        "Camera opened (backend=%s).",
+        "DSHOW" if active_backend == cv2.CAP_DSHOW else "MSMF",
+    )
 
     # Push camera to max FPS and disable internal buffer lag.
     # CAP_PROP_BUFFERSIZE = 1 means OpenCV keeps only the latest frame,
@@ -240,15 +270,79 @@ def run_detection():
     fps = 0.0
     frame_count = 0
     fps_start = time.time()
+    consecutive_failures = 0
+    MAX_CONSECUTIVE_FAILURES = 30   # try to re-open camera after this many
+    MAX_REOPEN_ATTEMPTS = 3         # give up entirely after this many re-opens
+    reopen_attempts = 0
 
     while True:
         # Grab and discard any queued frames so we always get the freshest one.
         # This matters when inference takes longer than the camera frame interval.
-        cap.grab()
-        ret, frame = cap.retrieve()
+        grabbed = cap.grab()
+        if grabbed:
+            ret, frame = cap.retrieve()
+        else:
+            ret, frame = False, None
+
         if not ret or frame is None:
-            logger.warning("Empty frame received — skipping.")
+            consecutive_failures += 1
+
+            # Back off so we don't spin the CPU on a camera that is
+            # temporarily unresponsive (common with the Windows MSMF backend).
+            backoff = min(0.1 * consecutive_failures, 2.0)
+
+            if consecutive_failures <= 3:
+                # Quiet for the first few — transient single-frame drops are
+                # normal and not worth logging every time.
+                pass
+            elif consecutive_failures == MAX_CONSECUTIVE_FAILURES:
+                logger.error(
+                    "Camera unresponsive for %d consecutive frames — "
+                    "attempting to re-open (attempt %d/%d).",
+                    consecutive_failures,
+                    reopen_attempts + 1,
+                    MAX_REOPEN_ATTEMPTS,
+                )
+                cap.release()
+                time.sleep(2.0)
+                cap = cv2.VideoCapture(CAMERA_INDEX, active_backend)
+                if cap.isOpened():
+                    cap.set(cv2.CAP_PROP_FPS, 60)
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    logger.info("Camera re-opened successfully.")
+                    consecutive_failures = 0
+                    reopen_attempts += 1
+                    continue
+                else:
+                    reopen_attempts += 1
+                    if reopen_attempts >= MAX_REOPEN_ATTEMPTS:
+                        logger.error(
+                            "Failed to re-open camera after %d attempts — "
+                            "shutting down detection.",
+                            MAX_REOPEN_ATTEMPTS,
+                        )
+                        break
+                    logger.warning(
+                        "Re-open failed; will keep retrying "
+                        "(attempt %d/%d).",
+                        reopen_attempts,
+                        MAX_REOPEN_ATTEMPTS,
+                    )
+                    consecutive_failures = 0
+                    continue
+            else:
+                if consecutive_failures % 10 == 0:
+                    logger.warning(
+                        "Empty frame received — %d consecutive failures.",
+                        consecutive_failures,
+                    )
+
+            time.sleep(backoff)
             continue
+
+        # Got a good frame — reset failure tracking.
+        consecutive_failures = 0
+        reopen_attempts = 0
 
         # 1. Run YOLO inference
         results = detector.predict(frame, confidence=CONFIDENCE)
