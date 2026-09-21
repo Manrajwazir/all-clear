@@ -122,6 +122,92 @@ skipping it visible — if there is no failing run to report, it was not followe
 
 ---
 
+## HARD RULE — say what you actually checked
+
+**Every claim is one of two things, and which one must be visible: something you
+READ, or something you WORKED OUT.** Tag the second `[inference]`. Cite a file
+and line for the first.
+
+This is not pedantry. It is the rule that would have prevented the worst mistake
+made on this project so far.
+
+**The incident, 2026-09-17.** A security review reported one critical advisory
+and reasoned: production runs on Vercel, Vercel runs Linux, the advisory says
+Windows-hosted, therefore production is probably unaffected. Every step was
+true. The conclusion was wrong, because there was a **second** critical in the
+same package with no platform qualifier, and the confident-sounding first half
+stopped anyone looking for it. Production was plausibly exposed for three days
+while the document said it probably was not.
+
+Three things follow, and each has cost something:
+
+- **The reassuring half of a finding is the half worth checking twice.** Nobody
+  re-examines bad news; it is already alarming. Good news ends the search.
+- **Read the specific record, not the rollup.** The same incident: `npm audit`
+  prints an aggregate `range` field spanning every prerelease line, which made a
+  patch look like a major upgrade. The per-advisory ranges ended one patch
+  version away. Summary fields are built for display, not for decisions.
+- **"Probably" is a flag, not a conclusion.** If the sentence needs it, the
+  check has not been done yet. Say so, or go and do it.
+
+## HARD RULE — a check that reports good news may not be running
+
+**When a check says "none", "clean", "OK" or "cannot compare", confirm it still
+runs before believing it.** The cheapest confirmation is to break the thing on
+purpose, watch the check fail, and put it back.
+
+**Four instances in one month**, all of which looked fine in the output:
+
+| Check | Said | Was actually |
+|---|---|---|
+| Link resolution | `none` | Hiding **97** dead links behind a repo-root fallback |
+| Design-system tokens | `cannot compare` | Off since a file moved |
+| `check-copy.py` | crashed, hook fails open | Reading as "clean" on any doc with a ⚠ or an em-dash |
+| `npm audit` in CI | never ran | Armed and correct, but triggered only on push |
+
+The last one is the sharpest, because nothing was broken. The gate worked
+perfectly and was simply never asked, since the advisories landed on a day
+nobody pushed. **Dependency security is the one category that decays while you
+are not touching the code**, so it needs a schedule rather than a trigger.
+
+A check that has stopped checking is worse than no check, because it occupies
+the slot where the absence would have been noticed.
+
+## HARD RULE — look for it before you build it
+
+**Search the repo before writing anything new.** Twice this month the thing
+being proposed already existed: an `npm audit` CI gate had been built in Phase 2
+and was about to be rebuilt, and the pricing page was already selling a COR
+export feature that is an eleven-line stub.
+
+The second shape is the dangerous one. **Something can be claimed, sold, or
+documented without existing**, and the gap does not announce itself. When the
+answer matters, check the code, not the document that describes it.
+
+---
+
+## WORKING AGREEMENT — what "finished" means here
+
+Manraj should not have to ask for these. A task is not done at the commit.
+
+1. **Write it down where it belongs.** `docs/active/` if it carries state,
+   `docs/records/` if it is a dated snapshot, an ADR if it is a decision.
+   `START_HERE.md` gets the session log. Run `python scripts/audit-docs.py`.
+2. **Explain it in chat afterwards**, in the `commit-report` skill’s
+   shape (it lives at `~/.claude/skills/commit-report`), and aim it at *understanding* rather than at a changelog. His
+   understanding is the real deliverable: he is the only person who can speak to
+   this system in front of Mitacs, an advisor, or a customer.
+3. **Separate his steps from yours.** Anything needing his hands gets its own
+   numbered list, written for someone who was not watching.
+4. **Update the artifact if the change makes it stale.** The system
+   documentation and the student brief are both published pages, and a repo that
+   contradicts them within a day is worse than not having them.
+5. **Report the failures too** — the run that failed, the check that regressed,
+   the thing left undone. A report with no bad news in it usually means the
+   looking stopped early.
+
+---
+
 
 
 ## What This Is
