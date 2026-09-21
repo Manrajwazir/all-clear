@@ -16,6 +16,24 @@ on:
   push:
     branches: [main, staging]
 
+  # THE TRIGGER THAT WAS MISSING, added 2026-09-21.
+  #
+  # On 2026-09-17 two CRITICAL advisories were found by hand, days after they
+  # were published. This workflow already existed and already ran `npm audit
+  # --audit-level=high`, so the check was not missing -- only the occasion to
+  # run it was. It fires on push and pull request, the last push was 2026-09-15,
+  # and the advisories landed after it. Nobody pushed, so nobody was told.
+  #
+  # That is the whole lesson of the incident in one line: **dependency security
+  # is the one category that decays while you are not touching the code.**
+  # Every other check in this repo answers "did this change break something".
+  # This one has to answer "did the world change under something that still
+  # works", and that question has no commit attached to it.
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC daily, ~07:00 Edmonton. Before the workday.
+
+  workflow_dispatch: # so it can be run by hand after an advisory lands
+
 jobs:
   npm-audit:
     name: npm audit (dashboard)

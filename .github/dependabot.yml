@@ -1,41 +1,71 @@
-# Dependabot — Automated dependency security updates
-# Phase 2, Step 2.8
+# Dependabot — the tap on the shoulder, so a human does not have to be the sensor.
 #
-# Monitors both npm (dashboard) and pip (detection) for known CVEs.
-# Opens PRs automatically when vulnerabilities are found.
-# Docs: https://docs.github.com/en/code-security/dependabot
+# WHY THIS EXISTS
+# ---------------
+# On 2026-09-17 two critical advisories were sitting in the dashboard's
+# dependency tree, both unauthenticated remote code execution, and they were
+# found because somebody happened to run `npm audit` while writing a security
+# review. That is not a detection mechanism, that is luck with good timing.
+#
+# `security.yml` runs the same audit in CI, and now on a daily schedule too, and
+# between them that is enough to NOTICE. Dependabot goes one step further and
+# opens the pull request with the version already bumped, which shortens the part
+# that actually costs time: the gap between knowing and shipping.
+#
+# Attacks on published advisories are automated dragnets. Nobody targets a small
+# Alberta company by name; a script pings millions of addresses asking whether a
+# known-vulnerable path answers. Being small is not cover, and the only variable
+# under our control is how fast the gap closes.
+#
+# WHAT TO EXPECT
+# --------------
+# Grouped, weekly, so this produces roughly one PR per ecosystem rather than a
+# stream of noise nobody reads. A checker people learn to ignore has stopped
+# being a checker -- this project has hit that failure three times already, and
+# alert fatigue is the same failure wearing different clothes.
+#
+# SECURITY updates are exempt from the grouping and arrive immediately. That is
+# the point, and it is deliberately the only thing allowed to interrupt.
 
 version: 2
-
 updates:
-  # --- Dashboard (Next.js / npm) ---
-  - package-ecosystem: "npm"
-    directory: "/dashboard"
+  - package-ecosystem: npm
+    directory: /dashboard
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "security"
+      interval: weekly
+      day: monday
+      time: "13:00"
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for routine bumps. Security fixes bypass grouping automatically.
+      dashboard-routine:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps"
+    labels: [dependencies]
 
-  # --- Detection (Python / pip) ---
-  - package-ecosystem: "pip"
-    directory: "/detection"
+  - package-ecosystem: pip
+    directory: /detection
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "security"
+      interval: weekly
+      day: monday
+      time: "13:00"
+    open-pull-requests-limit: 5
+    groups:
+      detection-routine:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps"
+    labels: [dependencies]
 
-  # --- GitHub Actions ---
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  # The workflow files themselves. An action pinned to a compromised tag is a
+  # supply-chain route straight into CI, which holds repository credentials.
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
-      day: "monday"
-    labels:
-      - "dependencies"
-      - "ci"
+      interval: monthly
+    commit-message:
+      prefix: "ci"
+    labels: [dependencies]

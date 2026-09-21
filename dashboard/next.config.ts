@@ -11,6 +11,27 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // DISABLED ON PURPOSE. Nothing in this app imports `next/image`, so the
+    // optimizer is pure attack surface with no benefit.
+    //
+    // /_next/image exists in EVERY Next deployment whether or not the app uses
+    // the component, and it is an endpoint that fetches and decodes
+    // attacker-supplied image bytes on the server. In September 2026 it carried
+    // an unauthenticated RCE with no platform qualifier, and we were inside the
+    // vulnerable range for three days believing we were not.
+    //
+    // Patching fixed that bug. This removes the category: the next optimizer
+    // advisory is not our problem, because the endpoint does nothing.
+    //
+    // If anyone later adds `next/image`, remove this line AND re-read the
+    // remotePatterns below -- `owasp-verify.py` A05 will switch from asserting
+    // this to warning that the assumption changed.
+    unoptimized: true,
+
+    // Retained, though inert while `unoptimized` is true, because it is the
+    // record of which host imagery may come from and is the correct setting the
+    // moment the optimizer is ever turned back on. Pinned to one bucket, never
+    // a wildcard.
     remotePatterns: [
       {
         protocol: "https",
