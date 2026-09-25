@@ -245,7 +245,7 @@ plainly on `/how-it-works` and `/assessment`.
 assessment**, not a free pilot. ADR 0009 explicitly rejects "free pilot
 converting to paid" as the default entry point. The approved three-sentence
 public pricing description is on `/assessment`; use it verbatim. Do not publish
-the ~$900/unit figure — ADR 0010 keeps that as a verbal answer when pressed.
+per-unit hardware pricing — ADR 0010 keeps it as a verbal answer when pressed.
 
 **Do not list what the assessment delivers.** ADR 0009 states plainly that "the
 entry engagement needs a defined deliverable and a defined duration before it
