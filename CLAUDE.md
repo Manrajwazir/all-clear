@@ -751,7 +751,11 @@ branches does not mean re-collecting credentials. Confirmed by Manraj
 
 - **Dataset:** Roboflow Construction Site Safety (2,801 images, 10 classes)
 
-- **Metrics:** Precision 0.927, Recall 0.774, mAP@50 84.1%
+- **Metrics:** none of our own, and never quote any. The weights' author publishes
+  their own figures; Roboflow publishes different ones for a *different* model it
+  hosts. This line used to give Roboflow's as ours (corrected 2026-09-24).
+  Provenance, including a byte-level match of `ppe_v1.pt` to the upstream file:
+  `all-clear-internal/docs/reference/ATTRIBUTIONS.md`
 
 - **Violation classes:** NO-Hardhat, NO-Safety Vest, NO-Mask
 
