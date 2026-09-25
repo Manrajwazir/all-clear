@@ -2,10 +2,10 @@
 
 The public website for [allclearsafety.ca](https://allclearsafety.ca).
 
-All Clear is a workplace-safety compliance system: it reads the security
-cameras already on an industrial site, detects missing PPE, and writes each
-detection to a timestamped compliance record. In default mode it captures no
-imagery at all.
+All Clear is a workplace-safety compliance system: it detects missing PPE and
+writes each detection to a timestamped compliance record. It is designed to read
+the cameras already on an industrial site; today it runs against a webcam. In
+default mode it captures no imagery at all.
 
 ---
 
