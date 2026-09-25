@@ -1,57 +1,70 @@
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0b3d2e,50:10b981,100:0b3d2e&height=160&section=header&text=All%20Clear&fontSize=58&fontColor=ffffff&animation=fadeIn&fontAlignY=40" alt="All Clear"/>
-</p>
+# All Clear
 
-<p align="center">
-  <b>Computer vision that turns a worksite's existing cameras into automated safety compliance.</b>
-</p>
+PPE detection that turns each detection into a tamper-evident compliance record.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/status-active%20development-10B981?style=flat-square" />
-  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/PyTorch%20%2F%20YOLO-EE4C2C?style=flat-square&logo=pytorch&logoColor=white" />
-  <img src="https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
-</p>
+The detection model is off the shelf. The part this project is about is what
+happens after the frame: every event is sealed server-side into a per-device
+hash chain, and an edit to a sealed field is refused by the database.
 
----
+## Where it stands today
 
-## What it does
+- **Detection runs on a laptop GPU, reading a webcam.** Camera index 0 is
+  hardcoded in `detection/src/main.py`. IP cameras (RTSP) are not wired up yet.
+- **There is no edge build yet.** A port to NVIDIA Jetson is planned under an
+  applied research program. The current code needs a display (`cv2.imshow`), loads
+  a PyTorch `.pt` model rather than a TensorRT engine, and has no service or
+  shutdown-signal handling.
+- **The record layer is split across two repos.** The device API that receives
+  and authenticates events is here, in `dashboard/app/api/v1/`. The database side
+  (the hash chain, the immutability trigger, the row-level security policies)
+  lives in a private repository and is not published.
+- **No imagery is stored by default.** Snapshots are an opt-in, per-site mode.
 
-All Clear connects to a facility's **existing IP cameras** and runs computer-vision detection at the edge to flag personal protective equipment (PPE) violations — a missing hard hat, a missing hi-vis vest — in real time. Each confirmed violation is logged with a timestamp and location, a supervisor is alerted, and the events build into a continuous, auditable safety record.
+## Run detection locally
 
-The product isn't the detection on its own — it's the **automated, defensible compliance audit trail** that detection produces.
+You need Python 3.11+ and a webcam. An NVIDIA GPU is optional but makes a large
+difference; without one, detection runs on CPU, slowly.
 
-## How it works
+**If you have an NVIDIA GPU, install a CUDA build of PyTorch first**, using the
+command pytorch.org gives for your CUDA version. The line below otherwise installs
+the CPU-only build, and detection quietly runs on CPU even with a GPU present.
 
+```bash
+cd detection
+pip install -e ".[dev]"
 ```
-Existing IP cameras  →  Edge device (on-site GPU)  →  Cloud  →  Real-time alerts + dashboard
-                         · runs detection locally       · stores events
-                         · filters noise                · serves dashboard
-                         · sends only violation events  · triggers alerts
+
+**Model weights are not in this repo.** Detection uses Ultralytics YOLOv8 with
+weights from `VoxDroid/Construction-Site-Safety-PPE-Detection`. Save the weights
+file as `detection/models/ppe_v1.pt`.
+
+```bash
+python src/main.py
 ```
 
-- **Edge-first.** Detection runs on-site. Only structured violation events leave the facility — not raw video. This keeps the system fast, bandwidth-light, resilient to connectivity drops, and privacy-respecting by design.
-- **Noise filtering.** Detections are debounced across frames and rate-limited per event type, so a single violation produces one meaningful alert — not a flood.
-- **Privacy by design.** No continuous footage leaves the site, no facial recognition. The system is built to output *what happened, where, and when* — not to surveil individuals.
+With no `DEVICE_API_KEY` set it runs in local mode: detections are logged to the
+terminal and nothing leaves the machine. Press `q` in the video window to quit.
 
-## Tech stack
+Check the first log line: it should say `Model loaded on CUDA:0`. If it says
+`CPU`, PyTorch can't see your GPU.
 
-| Layer            | Tools                                              |
-| ---------------- | -------------------------------------------------- |
-| Detection        | Python, PyTorch, YOLO (Ultralytics)                |
-| Edge             | On-site GPU inference                              |
-| Cloud / backend  | AWS (Canadian region), serverless event processing |
-| Data + dashboard | Next.js, real-time data layer                      |
-| Alerts           | SMS / messaging integration                        |
+If the camera won't open, close any other app using it. Video-call apps are the
+usual culprit, and no amount of retrying gets the camera back from them.
 
-## Status
+Tests: `pytest` from `detection/`.
 
-All Clear is an **incorporated Alberta company** currently in active research commercialization, advancing the system from a working prototype toward validated, real-world deployment through an applied-research program.
+## Stack
 
-> This repository contains the application code. It is under active development and evolving quickly.
+| Part | Tools |
+|---|---|
+| Detection | Python, OpenCV, Ultralytics YOLOv8 |
+| Device API and dashboard | Next.js route handlers, TypeScript |
+| Database | Supabase Postgres, Canadian region |
+| Snapshot storage (opt-in only) | AWS S3 |
+| Alerts | Twilio SMS |
 
 ## About
 
-Built by [Manraj Singh Wazir](https://www.linkedin.com/in/manraj-wazir/) and [Xavion Dean](https://www.linkedin.com/in/xavion-dean/).
-For more about the company: [All Clear](https://www.linkedin.com/company/all-clear-inc)
+Built by [Manraj Singh Wazir](https://www.linkedin.com/in/manraj-wazir/) and
+[Xavion Dean](https://www.linkedin.com/in/xavion-dean/).
+More about the company: [All Clear](https://www.linkedin.com/company/all-clear-inc).
