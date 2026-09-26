@@ -2,7 +2,14 @@
 # One line per finding: <commit>:<file>:<rule>:<line>. Fingerprint-exact, so
 # a real key added anywhere else, even in the same file, still fails the scan.
 #
-# 2026-09-25. `check("idempotency_key stored", row1.idempotency_key === ...)`
-# is a test assertion comparing two fields. The generic-api-key rule matched
-# the word "key" next to a long identifier. There is no value on the line.
+# DO NOT quote a flagged line in these comments. The scanner reads this file
+# too, and a quoted false positive becomes a new finding (the second entry).
+
+# 2026-09-25. A test assertion in test-violations.mjs comparing the
+# idempotency field of two rows. The generic-api-key rule matched the word
+# "key" beside a long identifier. There is no value on the line.
 280ddf3eafc29e9baa27da05ea8f954662912411:dashboard/scripts/test-violations.mjs:generic-api-key:280
+
+# 2026-09-25. The first version of this file quoted that assertion in a
+# comment, and the quote was flagged in turn. Same non-secret, one commit later.
+f4d088d4db759dac14cebc452aa19da941a8552a:.gitleaksignore:generic-api-key:5
