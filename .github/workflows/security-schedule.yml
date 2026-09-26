@@ -1,0 +1,36 @@
+# Daily trigger for the security gate. Lives on `main` BECAUSE IT HAS TO.
+#
+# GitHub runs `schedule:` workflows only from the repository's default branch,
+# and the default branch here is `main`: the static marketing site. The real
+# system, and the security gate itself (`security.yml`), live on `staging`.
+#
+# A schedule was put directly on staging's security.yml on 2026-09-21. It never
+# fired once, and nothing said so. This file is the fix: every morning it asks
+# GitHub to run staging's security.yml, which then audits staging's code.
+#
+# Why dispatch rather than copy the jobs here: one copy of the gate, so the
+# daily run and the push run can never drift apart.
+#
+# How to tell it is working: the Actions tab shows "Security Audit" runs on
+# `staging` with event `workflow_dispatch` each morning. If those stop
+# appearing, this is what broke.
+
+name: Security Audit (daily trigger)
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC, ~07:00 Edmonton
+  workflow_dispatch:
+
+permissions:
+  actions: write # needed to dispatch another workflow; nothing else
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      # A dispatch made with GITHUB_TOKEN is one of the documented exceptions
+      # that DOES start a new workflow run, so no personal token is needed.
+      - run: gh workflow run security.yml --ref staging --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
