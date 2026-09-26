@@ -123,14 +123,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # THE LOAD-BEARING LINE. Fetches the ENTIRE history rather than the
-          # tip. A secret committed and later deleted is still in history: the
-          # commit object holds it forever, and removing the file changes
-          # nothing. Scanning only the diff would find nothing and say so
-          # confidently.
+          # Fetches the ENTIRE history, which is necessary but, it turns out,
+          # NOT sufficient. A secret committed and later deleted is still in
+          # history, so only a full-history scan can find it.
           #
-          # This is the check that let a claim that detection/.env was in git
-          # history be disproved rather than argued about.
+          # CORRECTED 2026-09-25: this comment used to say fetch-depth: 0 makes
+          # every run scan the whole history. It does not. gitleaks-action
+          # picks the scan range from the EVENT: on push it scanned exactly
+          # the pushed commit (`--log-opts=-1`, "1 commits scanned"), whatever
+          # was fetched. Only workflow_dispatch and schedule scan everything.
+          # So the FULL scan is the daily dispatched run from
+          # security-schedule.yml on `main`; push runs check only what is new.
+          #
+          # The first full scan ever run, 2026-09-25: 113 commits, one finding,
+          # a false positive, suppressed by exact fingerprint in
+          # `.gitleaksignore` with the reasoning next to it.
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
         env:
