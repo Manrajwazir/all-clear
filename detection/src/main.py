@@ -52,6 +52,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from detector import PPEDetector, VIOLATION_CLASSES
 from debounce import ViolationTracker
+from camera import read_frame, should_warn
 from alerts import send_violation_sms
 from api_client import (
     AllClearClient,
@@ -241,14 +242,23 @@ def run_detection():
     frame_count = 0
     fps_start = time.time()
 
+    empty_frames = 0   # consecutive; reset by the first good frame
+
     while True:
-        # Grab and discard any queued frames so we always get the freshest one.
-        # This matters when inference takes longer than the camera frame interval.
-        cap.grab()
-        ret, frame = cap.retrieve()
-        if not ret or frame is None:
-            logger.warning("Empty frame received — skipping.")
+        # Freshest frame, or None after a short pause. A dead or locked camera
+        # must not become a hot loop: see camera.py and OPEN_ITEMS 17.2.
+        frame = read_frame(cap)
+        if frame is None:
+            empty_frames += 1
+            if should_warn(empty_frames):
+                logger.warning(
+                    "No frame from camera (%d in a row). If another app such "
+                    "as Teams has the webcam, close it.", empty_frames,
+                )
             continue
+        if empty_frames:
+            logger.info("Camera recovered after %d empty frames.", empty_frames)
+            empty_frames = 0
 
         # 1. Run YOLO inference
         results = detector.predict(frame, confidence=CONFIDENCE)
