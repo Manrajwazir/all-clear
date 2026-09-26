@@ -16,23 +16,19 @@ on:
   push:
     branches: [main, staging]
 
-  # THE TRIGGER THAT WAS MISSING, added 2026-09-21.
+  # THE DAILY RUN DOES NOT LIVE HERE, and cannot. Corrected 2026-09-25.
   #
-  # On 2026-09-17 two CRITICAL advisories were found by hand, days after they
-  # were published. This workflow already existed and already ran `npm audit
-  # --audit-level=high`, so the check was not missing -- only the occasion to
-  # run it was. It fires on push and pull request, the last push was 2026-09-15,
-  # and the advisories landed after it. Nobody pushed, so nobody was told.
+  # Dependency security decays while nobody touches the code, so this needs a
+  # schedule, not only a push trigger. A `schedule:` block was added here on
+  # 2026-09-21 and NEVER FIRED: GitHub runs scheduled workflows only from the
+  # DEFAULT branch, which is `main` (the marketing site), and this file lives on
+  # `staging`. It sat here looking like a daily audit and was inert.
   #
-  # That is the whole lesson of the incident in one line: **dependency security
-  # is the one category that decays while you are not touching the code.**
-  # Every other check in this repo answers "did this change break something".
-  # This one has to answer "did the world change under something that still
-  # works", and that question has no commit attached to it.
-  schedule:
-    - cron: "0 13 * * *" # 13:00 UTC daily, ~07:00 Edmonton. Before the workday.
-
-  workflow_dispatch: # so it can be run by hand after an advisory lands
+  # The schedule now lives on `main` in `security-schedule.yml`, which does one
+  # thing: dispatch THIS workflow against `staging` every morning. That is why
+  # `workflow_dispatch` below is load-bearing, not a convenience. Remove it and
+  # the daily run silently stops again.
+  workflow_dispatch:
 
 jobs:
   npm-audit:
@@ -51,6 +47,12 @@ jobs:
       # npm ci, NOT npm install. ci installs exactly the lockfile; install may
       # resolve differently, and a CI run that does not match anyone machine is
       # worse than no CI run, because it is believed.
+      # `package.json` carries an `overrides` entry forcing the postcss copy
+      # nested INSIDE next up to ^8.5.23 (added 2026-09-25). Every 15.x release
+      # of next pins postcss 8.4.31, which has two high advisories, and only
+      # next 16 ships a fixed one. The override is the fix short of a major
+      # upgrade; it was verified with a clean `npm ci`, tsc, lint and build.
+      # When next is upgraded to 16, delete the override.
       - run: npm ci
       # Fails on high and critical; moderate and low pass. A deliberate policy,
       # not laziness: a gate that fires on everything trains people to ignore
@@ -69,9 +71,51 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install pip-audit
+      # WHY THIS JOB LOOKS THE WAY IT DOES. Rewritten 2026-09-25.
+      #
+      # It used to be `pip install -e .` then `pip-audit --strict`. That failed
+      # on EVERY run since at least 2026-07-26, and not because of a
+      # vulnerability: `--strict` aborts when any package cannot be looked up,
+      # and our own package `ppe-detection` is not on PyPI. It aborted before
+      # auditing anything else, so **the Python dependencies were never
+      # actually audited**, and the red X carried no information.
+      #
+      # So: install, list exactly what got installed MINUS our own package,
+      # and audit that list. `--disable-pip --no-deps` means "audit these exact
+      # versions, do not re-resolve them".
       - run: pip install -e .
-      - run: pip-audit --strict --desc
+      - name: List installed dependencies, excluding our own package
+        run: |
+          # pip, setuptools and wheel are the runner's installer toolchain, not
+          # anything the detection service imports at runtime. Auditing them
+          # would make this gate go red on the GitHub image's pip version.
+          pip list --format=freeze --exclude-editable \
+            | grep -viE '^(pip|setuptools|wheel)==' > "$RUNNER_TEMP/installed.txt"
+          n=$(wc -l < "$RUNNER_TEMP/installed.txt")
+          echo "$n packages to audit"
+          # GUARD. On 2026-09-25 a crashed `pip freeze` produced an EMPTY list
+          # and pip-audit reported "No known vulnerabilities found", exit 0.
+          # An empty list is not a clean result. Refuse it.
+          if [ "$n" -lt 30 ] || ! grep -qi '^ultralytics==' "$RUNNER_TEMP/installed.txt"; then
+            echo "::error::dependency list is empty or incomplete ($n packages); refusing to report it clean"
+            exit 1
+          fi
+      # Installed AFTER the list is taken, so the auditor's own dependencies
+      # are not mixed into what we claim to have audited.
+      - run: pip install pip-audit
+      # CANARY. A package version with known advisories. If the auditor ever
+      # stops finding it (database unreachable, tool broken, flags changed),
+      # this step fails. It is "break it on purpose and watch the check fail",
+      # built in, so a green run means the auditor was working that day.
+      - name: Canary, prove the auditor can still find a vulnerability
+        run: |
+          echo "requests==2.25.0" > "$RUNNER_TEMP/canary.txt"
+          if pip-audit --disable-pip --no-deps -r "$RUNNER_TEMP/canary.txt" > /dev/null 2>&1; then
+            echo "::error::canary requests==2.25.0 was NOT flagged; the auditor is not working"
+            exit 1
+          fi
+          echo "canary flagged as expected"
+      - run: pip-audit --strict --desc --disable-pip --no-deps -r "$RUNNER_TEMP/installed.txt"
 
   gitleaks:
     name: Secret scanning (gitleaks)
