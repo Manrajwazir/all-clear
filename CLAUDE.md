@@ -156,19 +156,31 @@ Three things follow, and each has cost something:
 runs before believing it.** The cheapest confirmation is to break the thing on
 purpose, watch the check fail, and put it back.
 
-**Four instances in one month**, all of which looked fine in the output:
+**The instances so far**, every one of which looked fine, or at least looked
+like something else, in its output:
 
 | Check | Said | Was actually |
 |---|---|---|
 | Link resolution | `none` | Hiding **97** dead links behind a repo-root fallback |
 | Design-system tokens | `cannot compare` | Off since a file moved |
 | `check-copy.py` | crashed, hook fails open | Reading as "clean" on any doc with a ⚠ or an em-dash |
-| `npm audit` in CI | never ran | Armed and correct, but triggered only on push |
+| Security CI, `npm audit` | red | Red on **every** run since July. Nobody read it, so the red carried nothing |
+| Security CI, `pip-audit` | red | Aborted on our own unpublished package **before auditing anything**. Python deps were never audited |
+| Security CI, daily schedule | (silence) | Never fired. Schedules run only from the default branch, `main` |
+| Security CI, `gitleaks` | clean | Scanned **one commit** per push. `fetch-depth: 0` downloads the history; it does not make the action scan it |
+| `pip-audit` locally, 2026-09-25 | `No known vulnerabilities found` | Auditing an **empty** list after `pip freeze` crashed |
 
-The last one is the sharpest, because nothing was broken. The gate worked
-perfectly and was simply never asked, since the advisories landed on a day
-nobody pushed. **Dependency security is the one category that decays while you
-are not touching the code**, so it needs a schedule rather than a trigger.
+**The security CI rows are the sharpest, because they were believed on the
+strength of the workflow FILE.** It read correctly; the run history said
+otherwise. Corrected 2026-09-25: an earlier version of this table said the gate
+was "armed and correct" and had "never ran". Both were claims about the file,
+and both were false about the runs. **Read what a check did, not what it is
+configured to do.**
+
+Two defences now built in, worth copying elsewhere: a **canary** (the Python
+audit must flag a known-vulnerable package on every run, or fail) and a
+**refusal of empty input** (an empty or partial dependency list fails rather
+than reporting clean). Both turn "break it on purpose" into a standing step.
 
 A check that has stopped checking is worse than no check, because it occupies
 the slot where the absence would have been noticed.
