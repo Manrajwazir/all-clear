@@ -1,0 +1,77 @@
+# Dependabot version updates. Lives on `main` BECAUSE IT HAS TO.
+#
+# GitHub reads this file ONLY from the default branch, which is `main`, the
+# marketing site. A copy sat on `staging` from 2026-09-21 and was never read:
+# no Dependabot PR was ever opened (found 2026-09-28). Same trap as the daily
+# security run; see security-schedule.yml.
+#
+# So every entry for the real system says `target-branch: staging`. The PRs are
+# opened against staging, where the code is.
+#
+# Dependabot ALERTS are separate, and they only ever scan this default branch.
+# The real system on staging is covered by the daily security gate instead
+# (staging:.github/workflows/security.yml), which runs npm audit, pip-audit and
+# gitleaks every morning.
+#
+# Grouped weekly so it stays readable. Security updates are NOT grouped and
+# arrive as soon as an advisory lands.
+
+version: 2
+updates:
+  # ── The real system, on staging ────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /dashboard
+    target-branch: staging
+    schedule:
+      interval: weekly
+      day: monday
+      time: "13:00"
+    open-pull-requests-limit: 5
+    groups:
+      dashboard-routine:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps"
+    labels: [dependencies]
+
+  - package-ecosystem: pip
+    directory: /detection
+    target-branch: staging
+    schedule:
+      interval: weekly
+      day: monday
+      time: "13:00"
+    open-pull-requests-limit: 5
+    groups:
+      detection-routine:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps"
+    labels: [dependencies]
+
+  # The workflow files themselves. An action pinned to a compromised tag is a
+  # supply-chain route straight into CI, which holds repository credentials.
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: staging
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"
+    labels: [dependencies]
+
+  # ── The marketing site itself, on main ─────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /dashboard
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      site-routine:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "site-deps"
+    labels: [dependencies]
