@@ -68,7 +68,7 @@ jobs:
         working-directory: detection
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       # WHY THIS JOB LOOKS THE WAY IT DOES. Rewritten 2026-09-25.
