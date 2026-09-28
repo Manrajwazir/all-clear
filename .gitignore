@@ -14,6 +14,9 @@ detection/queue.db
 detection/queue.db-wal
 detection/queue.db-shm
 detection/queue_images/
+# Renamed or backed-up queues, e.g. queue-rehearsal.db set aside 2026-09-26.
+# Same contents, same reason to never commit them.
+detection/queue*.db*
 .vscode
 .idea
 .venv
