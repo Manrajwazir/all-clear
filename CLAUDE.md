@@ -169,6 +169,13 @@ like something else, in its output:
 | Security CI, daily schedule | (silence) | Never fired. Schedules run only from the default branch, `main` |
 | Security CI, `gitleaks` | clean | Scanned **one commit** per push. `fetch-depth: 0` downloads the history; it does not make the action scan it |
 | `pip-audit` locally, 2026-09-25 | `No known vulnerabilities found` | Auditing an **empty** list after `pip freeze` crashed |
+| Dependabot version updates, 2026-09-28 | (silence) | Config on `staging`; GitHub reads `dependabot.yml` only from the default branch. **Never ran.** First run opened 11 PRs |
+| Dependabot alerts check, 2026-09-23 to 09-26 | "off" (bad news, and wrong) | `vulnerability-alerts` returned 404 while alerts were on. `dependabot/alerts` is the real signal |
+
+**Any GitHub automation that lives on `staging` needs checking against the default
+branch.** Schedules and Dependabot both read only `main`; both were configured on
+`staging` and silently did nothing. The fix both times: a small file on `main` that
+targets `staging`.
 
 **The security CI rows are the sharpest, because they were believed on the
 strength of the workflow FILE.** It read correctly; the run history said
