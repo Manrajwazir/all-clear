@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from api_client import AllClearClient, new_idempotency_key, utc_now_iso  # noqa: E402
 from event_queue import BACKOFF_SECONDS, EventQueue, QueueReplayer  # noqa: E402
+from tests.live_guard import live_block_reason  # noqa: E402
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -234,9 +235,14 @@ def _server_up() -> bool:
         return False
 
 
+# Live tests write to a real database: never by accident, never to production.
+# See tests/live_guard.py. The guard is checked first, so a refused run never
+# even probes the server.
+_LIVE_BLOCKED = live_block_reason()
+
 needs_server = pytest.mark.skipif(
-    not (SUPABASE_URL and SERVICE_KEY and _server_up()),
-    reason="needs detection/.env credentials and a dashboard at ALLCLEAR_API_URL",
+    _LIVE_BLOCKED is not None or not (SUPABASE_URL and SERVICE_KEY and _server_up()),
+    reason=_LIVE_BLOCKED or "needs detection/.env credentials and a dashboard at ALLCLEAR_API_URL",
 )
 
 

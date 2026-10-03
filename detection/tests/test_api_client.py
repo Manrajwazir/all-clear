@@ -44,6 +44,8 @@ from api_client import (  # noqa: E402
     utc_now_iso,
 )
 
+from tests.live_guard import live_block_reason  # noqa: E402
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 API_URL = os.getenv("ALLCLEAR_API_URL", "http://localhost:3000")
@@ -69,9 +71,14 @@ def _server_up() -> bool:
         return False
 
 
+# Live tests write to a real database: never by accident, never to production.
+# See tests/live_guard.py. The guard is checked first, so a refused run never
+# even probes the server.
+_LIVE_BLOCKED = live_block_reason()
+
 pytestmark = pytest.mark.skipif(
-    not (SUPABASE_URL and SERVICE_KEY and _server_up()),
-    reason=(
+    _LIVE_BLOCKED is not None or not (SUPABASE_URL and SERVICE_KEY and _server_up()),
+    reason=_LIVE_BLOCKED or (
         "needs SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in detection/.env and a "
         "dashboard running at ALLCLEAR_API_URL (npm run dev)"
     ),
