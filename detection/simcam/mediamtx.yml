@@ -1,0 +1,38 @@
+# MediaMTX config for the simulated camera (Labs4 block 1, C1).
+#
+# Plays the network side of an IP camera: an RTSP server on port 8554 that
+# demands a username and password to watch, like a real camera does. FFmpeg (the
+# "publisher" service in compose.yaml) pushes a looping video into it.
+#
+# Test equipment only. Nothing here ever runs on a site device.
+
+logLevel: info
+
+rtspAddress: :8554
+rtmp: no
+hls: no
+webrtc: no
+srt: no
+
+authInternalUsers:
+  # The viewer: what the detection service logs in as. The password is not a
+  # secret (this is a fake camera on localhost); the tests use it to prove the
+  # real one never reaches a log.
+  - user: viewer
+    pass: simcamPass7391
+    ips: []
+    permissions:
+      - action: read
+        path:
+  # The publisher (FFmpeg, inside the compose network) needs no login.
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+        path:
+
+paths:
+  # Any stream name is accepted, so asking for one that isn't being published
+  # (rtsp://.../cam9) behaves like a camera asked for a path it doesn't have.
+  all_others:

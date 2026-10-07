@@ -1,0 +1,57 @@
+# The simulated camera (Labs4 block 1, C1).
+#
+#   rtsp       MediaMTX, the camera's network side: rtsp://127.0.0.1:8554/cam1
+#   publisher  FFmpeg, playing clips/counting.mp4 into it on a loop, re-encoded
+#              the way a camera sends: H.264, 15 fps, a keyframe every 4 s (60
+#              frames). The keyframe spacing matters: after a reconnect the
+#              decoder has no clean picture until the next keyframe, and a sim
+#              with a keyframe on every frame would hide that delay.
+#
+# Driven by fault.py, which breaks it on purpose. Versions are pinned so a test
+# run today and one in December use the same software.
+
+name: allclear-simcam
+
+services:
+  rtsp:
+    image: bluenviron/mediamtx:1.9.3
+    ports:
+      - "127.0.0.1:8554:8554"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+
+  publisher:
+    image: linuxserver/ffmpeg:9.0-cli-ls84
+    depends_on:
+      - rtsp
+    # If the server goes away, FFmpeg exits; this brings it back once the
+    # server is up again, the way a camera's stream returns after a reboot.
+    restart: unless-stopped
+    volumes:
+      - ./clips:/clips:ro
+    command:
+      - -hide_banner
+      - -loglevel
+      - warning
+      - -re
+      - -stream_loop
+      - "-1"
+      - -i
+      - /clips/counting.mp4
+      - -c:v
+      - libx264
+      - -preset
+      - ultrafast
+      - -tune
+      - zerolatency
+      - -r
+      - "15"
+      - -g
+      - "60"
+      - -pix_fmt
+      - yuv420p
+      - -f
+      - rtsp
+      - -rtsp_transport
+      - tcp
+      - rtsp://rtsp:8554/cam1

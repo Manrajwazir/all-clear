@@ -21,3 +21,5 @@ detection/queue*.db*
 .idea
 .venv
 /docs
+# Simulated camera test clips (Labs4 block 1). Generated, and a real clip has a person in it.
+detection/simcam/clips/
