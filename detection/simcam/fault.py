@@ -59,7 +59,10 @@ def start_camera() -> None:
     # Server first, and wait until it answers, THEN the stream. Started together,
     # FFmpeg can try before the server is on Docker's network ("Failed to
     # resolve hostname rtsp"), give up, and stay down. Seen 2026-10-06.
-    _compose("up", "-d", "rtsp")
+    # Recreated, not just started: Docker on Windows can keep showing a
+    # container the OLD copy of a bind-mounted file after it is edited, so an
+    # edited mediamtx.yml would be silently ignored. Seen 2026-10-08.
+    _compose("up", "-d", "--force-recreate", "rtsp")
     _wait_for_server()
     _compose("up", "-d", "--force-recreate", "publisher")
 

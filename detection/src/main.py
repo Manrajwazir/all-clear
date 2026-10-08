@@ -52,7 +52,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from detector import PPEDetector, VIOLATION_CLASSES
 from debounce import ViolationTracker
-from camera import read_frame, should_warn
+from camera import (
+    CameraConfigError,
+    CameraSource,
+    configure_capture_logging,
+    read_frame,
+    should_warn,
+)
 from alerts import send_violation_sms
 from api_client import (
     AllClearClient,
@@ -77,7 +83,10 @@ MODEL_PATH    = "models/ppe_v1.pt"
 CONFIDENCE    = float(os.getenv("DETECTION_CONFIDENCE_THRESHOLD", 0.6))
 DEBOUNCE_F    = int(os.getenv("DEBOUNCE_FRAMES", 5))
 COOLDOWN_S    = int(os.getenv("COOLDOWN_SECONDS", 60))
-CAMERA_INDEX  = 0   # 0 = default webcam; swap for RTSP URL string for IP camera
+# Which camera to read comes from CAMERA_SOURCE (a webcam number, an rtsp://
+# address, or a video file), with CAMERA_USERNAME / CAMERA_PASSWORD for its
+# login. See camera.CameraSource. It used to be `CAMERA_INDEX = 0` right here,
+# the one setting not read from .env (Labs4 block 1, C2).
 
 # Which camera this device is watching.
 #
@@ -133,6 +142,18 @@ else:
 
 
 def run_detection():
+    # ── Which camera, checked before anything else ────────────────────────
+    #
+    # A bad camera setting can't fix itself, so it stops start-up at once,
+    # before the network or the model, with exit code 4: "bad configuration,
+    # do not restart". Restarting would only fail the same way again.
+    try:
+        source = CameraSource.from_env(os.environ)
+    except CameraConfigError as exc:
+        logger.error("Camera setting rejected: %s", exc)
+        raise SystemExit(4)
+    configure_capture_logging(source)
+
     # ── Verify the device key BEFORE loading the model or opening the camera ──
     #
     # Fail fast, deliberately. On 2026-08-20 this service ran for a full session
@@ -204,15 +225,20 @@ def run_detection():
         cooldown_seconds=COOLDOWN_S
     )
 
-    logger.info(f"Opening camera {CAMERA_INDEX}...")
-    cap = cv2.VideoCapture(CAMERA_INDEX)
+    # source.display, never source.open_target(): only the latter carries the
+    # password, and it goes straight to OpenCV, never into a log line.
+    logger.info("Opening camera %s...", source.display)
+    cap = cv2.VideoCapture(source.open_target())
 
     if not cap.isOpened():
-        logger.error(
-            "Could not open camera. "
-            "Windows fix: Settings → Privacy & Security → Camera → "
-            "Allow desktop apps to access your camera."
-        )
+        if source.kind == "webcam":
+            logger.error(
+                "Could not open camera. "
+                "Windows fix: Settings → Privacy & Security → Camera → "
+                "Allow desktop apps to access your camera."
+            )
+        else:
+            logger.error("Could not open camera %s.", source.display)
         return
 
     # Push camera to max FPS and disable internal buffer lag.
@@ -225,6 +251,11 @@ def run_detection():
     print("  All Clear — Live PPE Detection + Violation Logger")
     print(f"  Monitoring: {', '.join(sorted(VIOLATION_CLASSES))}")
     print(f"  Debounce: {DEBOUNCE_F} frames | Cooldown: {COOLDOWN_S}s")
+    # Both on one line on purpose: CAMERA_ID says which camera row violations
+    # are filed against, CAMERA_SOURCE where the video really comes from, and
+    # nothing can check they match. A copied .env with the wrong pair files
+    # camera B's violations as camera A's; here, at least, it is visible.
+    print(f"  Camera:       {source.display}  ->  CAMERA_ID {CAMERA_ID}")
     mode = f"API → {ALLCLEAR_API_URL}" if API_ENABLED else "LOCAL LOG ONLY"
     print(f"  Storage mode: {mode}")
     snap = "requested (pending site confirmation)" if SNAPSHOT_MODE else "off"

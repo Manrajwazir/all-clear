@@ -24,6 +24,16 @@ authInternalUsers:
     permissions:
       - action: read
         path:
+  # A password with characters that break an address unless encoded: '@' splits
+  # the login from the host, '#' cuts the address off. Proves they survive being
+  # encoded into rtsp://user:pass@host (C2). MediaMTX itself refuses ':', '/' and ','
+  # in a login (found 2026-10-08), so those are covered by the unit tests only.
+  - user: special
+    pass: "p@ss#w&rd1"
+    ips: []
+    permissions:
+      - action: read
+        path:
   # The publisher (FFmpeg, inside the compose network) needs no login.
   - user: any
     pass:
