@@ -22,63 +22,21 @@ No camera, no model, no network: a fake camera stands in for cv2.VideoCapture.
 The sim check that measures real frame age is tests/simcam/test_frame_age.py.
 """
 
-import logging
-import threading
 import time
 from datetime import datetime, timedelta, timezone
 
-import numpy as np
 import pytest
 
-from camera import EMPTY_FRAME_WAIT_SECONDS, FrameReader, FrameReaderError
+from camera import CameraSource, FrameReader
+from tests.camera_fakes import FakeCamera, Opener, img, wait_until
+
+STREAM = CameraSource("stream", "rtsp://cam.local/sub")
+FILE = CameraSource("file", "clip.mp4")
 
 
-def img(n):
-    return np.full((4, 4, 3), n % 256, dtype=np.uint8)
-
-
-class FakeCamera:
-    """The three calls the reader makes on a cv2.VideoCapture.
-
-    `frames` arrive in order, each `interval` seconds after the last; None is an
-    empty read. After the last one the camera goes quiet: grab() waits a moment
-    and reports nothing, like a live camera with no new frame yet. If `explode`
-    is given, grab() raises it instead of going quiet.
-    """
-
-    def __init__(self, frames=(), interval=0.0, explode=None):
-        self._frames = list(frames)
-        self._interval = interval
-        self._explode = explode
-        self._current = None
-        self.released_by = None
-
-    def grab(self):
-        if not self._frames:
-            if self._explode is not None:
-                raise self._explode
-            time.sleep(0.02)
-            self._current = None
-            return False
-        if self._interval:
-            time.sleep(self._interval)
-        self._current = self._frames.pop(0)
-        return self._current is not None
-
-    def retrieve(self):
-        return self._current is not None, self._current
-
-    def release(self):
-        self.released_by = threading.current_thread().name
-
-
-def wait_until(condition, timeout=2.0):
-    end = time.monotonic() + timeout
-    while time.monotonic() < end:
-        if condition():
-            return
-        time.sleep(0.005)
-    raise AssertionError("condition not reached in time")
+def live(frames, **kwargs):
+    """A live camera: these frames, then nothing new for a while (it doesn't end)."""
+    return FakeCamera(frames, then="hang", hang=2, **kwargs)
 
 
 @pytest.fixture
@@ -86,19 +44,21 @@ def started():
     """Start readers through this, so a failing test can't leave a thread running."""
     readers = []
 
-    def start(cam, **kwargs):
-        reader = FrameReader(cam, **kwargs)
-        readers.append(reader)
+    def start(cam, source=STREAM):
+        opener = Opener(cam)
+        reader = FrameReader(source, open_capture=opener, probe=lambda host, port: True)
+        readers.append((reader, opener))
         return reader.start()
 
     yield start
-    for reader in readers:
+    for reader, opener in readers:
+        opener.wake_all()
         reader.stop()
 
 
 def test_the_loop_gets_the_newest_frame_not_the_oldest(started):
     images = [img(n) for n in range(1, 6)]
-    reader = started(FakeCamera(images))
+    reader = started(live(images))
     wait_until(lambda: reader.stats["received"] == 5)
 
     got = reader.next_frame(timeout=1)
@@ -110,7 +70,7 @@ def test_the_loop_gets_the_newest_frame_not_the_oldest(started):
 
 def test_no_frame_is_handed_out_twice_however_fast_the_loop_asks(started):
     images = [img(n) for n in range(20)]
-    reader = started(FakeCamera(images, interval=0.03))   # a camera at ~30 fps
+    reader = started(live(images, interval=0.03))         # a camera at ~30 fps
 
     seen = []
     end = time.monotonic() + 1.0
@@ -130,7 +90,7 @@ def test_no_frame_is_handed_out_twice_however_fast_the_loop_asks(started):
 
 
 def test_no_new_frame_returns_nothing_instead_of_waiting_forever(started):
-    reader = started(FakeCamera([img(1)]))                 # one frame, then silence
+    reader = started(live([img(1)]))                       # one frame, then silence
     assert reader.next_frame(timeout=1) is not None
 
     t0 = time.monotonic()
@@ -140,7 +100,7 @@ def test_no_new_frame_returns_nothing_instead_of_waiting_forever(started):
 
 def test_each_frame_carries_the_moment_it_arrived_in_utc(started):
     before = datetime.now(timezone.utc)
-    reader = started(FakeCamera([img(1)]))
+    reader = started(live([img(1)]))
     got = reader.next_frame(timeout=1)
     after = datetime.now(timezone.utc)
 
@@ -153,7 +113,7 @@ def test_each_frame_carries_the_moment_it_arrived_in_utc(started):
 
 
 def test_frames_the_loop_never_saw_are_counted(started):
-    reader = started(FakeCamera([img(n) for n in range(1, 11)]))
+    reader = started(live([img(n) for n in range(1, 11)]))
     wait_until(lambda: reader.stats["received"] == 10)
 
     got = reader.next_frame(timeout=1)
@@ -164,7 +124,7 @@ def test_frames_the_loop_never_saw_are_counted(started):
 
 def test_a_recording_gives_every_frame_in_order(started):
     images = [img(n) for n in range(1, 21)]
-    reader = started(FakeCamera(images), every_frame=True)
+    reader = started(FakeCamera(images, then="end"), source=FILE)
 
     seen = []
     for _ in range(40):                                    # bounded: a broken reader fails, not hangs
@@ -180,41 +140,21 @@ def test_a_recording_gives_every_frame_in_order(started):
 
 
 def test_stopping_releases_the_camera_from_the_reader_thread(started):
-    cam = FakeCamera([img(1)])
+    cam = live([img(1)])
     reader = started(cam)
     reader.next_frame(timeout=1)
 
     reader.stop()
 
     assert not reader.is_alive()
-    # The reader is the camera's only owner: it opens nothing here yet (C4), but
-    # it is the one that lets go, so a release can never race a read.
+    # The reader is the camera's only owner: it opens it, reads it, and lets
+    # it go, all on its own thread, so a release can never race a read.
     assert cam.released_by == "allclear-camera"
 
 
-def test_a_reader_that_dies_is_an_error_not_silence(started):
-    reader = started(FakeCamera([img(1)], explode=RuntimeError("decoder crashed")))
-    assert reader.next_frame(timeout=1) is not None
-
-    # Without this the loop would get None forever and look like a quiet camera.
-    with pytest.raises(FrameReaderError):
-        reader.next_frame(timeout=1)
-
-
-def test_a_dead_camera_is_waited_on_not_spun(started, caplog):
-    """OPEN_ITEMS 17.2, now inside the reader: fail slowly and quietly."""
-    waits = []
-
-    def sleep(seconds):
-        waits.append(seconds)
-        time.sleep(0.001)
-
-    caplog.set_level(logging.WARNING)
-    reader = started(FakeCamera([None] * 60), sleep=sleep)
-    wait_until(lambda: len(waits) >= 60)
-    reader.stop()
-
-    assert set(waits) == {EMPTY_FRAME_WAIT_SECONDS}, "every empty read must pause"
-    assert reader.stats["received"] == 0
-    warnings = [r for r in caplog.records if "No frame from camera" in r.getMessage()]
-    assert 1 <= len(warnings) <= 3, f"{len(warnings)} warnings for ~60 empty reads"
+# Moved to test_reconnect.py in C4, where their meaning changed (plan §4.3):
+#   "a reader that dies is an error, not silence": an error FROM THE CAMERA is now
+#     a lost stream and a reconnect; only a bug in the reader itself kills it,
+#     and that still reaches the loop as FrameReaderError.
+#   "a dead camera is waited on, not spun" (OPEN_ITEMS 17.2): now the backoff
+#     does the waiting, 1 s up to 30 s, instead of a fixed 0.1 s pause.

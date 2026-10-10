@@ -90,6 +90,14 @@ COOLDOWN_S    = int(os.getenv("COOLDOWN_SECONDS", 60))
 # when the camera has gone quiet; normally a new frame is already waiting.
 FRAME_WAIT_SECONDS = 1.0
 
+# Camera timeouts and the refused wait (plan §4.1, §4.3). Connecting gives up
+# after CAMERA_OPEN_TIMEOUT_S; no frame for CAMERA_READ_TIMEOUT_S means the
+# stream is lost. A camera that answers but refuses the stream (most likely a
+# wrong password) is tried every CAMERA_REFUSED_WAIT_S, so we can't lock it.
+CAMERA_OPEN_TIMEOUT_S  = float(os.getenv("CAMERA_OPEN_TIMEOUT_S", 10))
+CAMERA_READ_TIMEOUT_S  = float(os.getenv("CAMERA_READ_TIMEOUT_S", 5))
+CAMERA_REFUSED_WAIT_S  = float(os.getenv("CAMERA_REFUSED_WAIT_S", 300))
+
 # Which camera this device is watching.
 #
 # CAMERA_ID STAYS IN CONFIG, and that is a considered position rather than an
@@ -227,29 +235,6 @@ def run_detection():
         cooldown_seconds=COOLDOWN_S
     )
 
-    # source.display, never source.open_target(): only the latter carries the
-    # password, and it goes straight to OpenCV, never into a log line.
-    logger.info("Opening camera %s...", source.display)
-    cap = cv2.VideoCapture(source.open_target())
-
-    if not cap.isOpened():
-        if source.kind == "webcam":
-            logger.error(
-                "Could not open camera. "
-                "Windows fix: Settings → Privacy & Security → Camera → "
-                "Allow desktop apps to access your camera."
-            )
-        else:
-            logger.error("Could not open camera %s.", source.display)
-        return
-
-    # Ask a webcam for its top frame rate and a one-frame buffer. FFmpeg, which
-    # reads network streams, rejects the buffer setting (measured 2026-10-10:
-    # cap.set returns False, and a slow loop was 7.9 s behind after 12 s).
-    # Keeping up is the FrameReader's job, below, not this setting.
-    cap.set(cv2.CAP_PROP_FPS, 60)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
     print("\n" + "=" * 62)
     print("  All Clear — Live PPE Detection + Violation Logger")
     print(f"  Monitoring: {', '.join(sorted(VIOLATION_CLASSES))}")
@@ -276,18 +261,27 @@ def run_detection():
     frame_count = 0
     fps_start = time.time()
 
-    # From here on the reader thread is the camera's only owner: the loop never
-    # touches `cap` again, it only receives frames. A recorded file gives every
-    # frame in order; a live camera gives the newest one each time.
-    reader = FrameReader(cap, every_frame=(source.kind == "file")).start()
+    # The camera belongs to the reader thread: it connects, reads, and
+    # reconnects when the stream breaks. The loop never touches the camera, it
+    # only receives frames. A camera that isn't there yet is not a reason to
+    # exit (G3): after a power cut the device boots before the camera does.
+    # A recorded file gives every frame in order, then finishes.
+    reader = FrameReader(
+        source,
+        open_timeout_s=CAMERA_OPEN_TIMEOUT_S,
+        read_timeout_s=CAMERA_READ_TIMEOUT_S,
+        refused_wait_s=CAMERA_REFUSED_WAIT_S,
+    ).start()
 
     while True:
         # The newest frame not yet seen, or None if nothing new arrived within
-        # the wait. A dead or locked camera is reported by the reader, slowly
-        # and quietly (OPEN_ITEMS 17.2). If the reader thread has died this
-        # raises rather than returning None forever.
+        # the wait. Outages are the reader's business: it reconnects, and logs
+        # each one once. If the reader thread has died this raises rather than
+        # returning None forever.
         received = reader.next_frame(timeout=FRAME_WAIT_SECONDS)
         if received is None:
+            if reader.finished:
+                break               # a recorded file has ended: stop cleanly
             continue
         frame = received.image
 

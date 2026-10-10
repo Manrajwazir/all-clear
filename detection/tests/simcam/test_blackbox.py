@@ -220,8 +220,10 @@ def test_2_a_stream_that_ends_is_noticed_and_comes_back(run):
     r = run()
     _connected(r)
 
-    fault.stop_stream()
+    # The clock starts BEFORE the fault: the program can notice the stream end
+    # before Docker's stop command returns (seen 2026-10-10, C4).
     broke_at = time.monotonic()
+    fault.stop_stream()
     lost = r.wait_for(r"Camera stream lost", READ_TIMEOUT_S + 10, after=broke_at)
     assert lost, "the stream ended and the program never said so:\n" + r.output()[-3000:]
 
@@ -237,8 +239,8 @@ def test_3_a_hung_stream_is_noticed_within_the_read_timeout(run):
     r = run()
     _connected(r)
 
+    hung_at = time.monotonic()      # before the fault, as in check 2
     fault.pause()
-    hung_at = time.monotonic()
     lost = r.wait_for(r"Camera stream lost", READ_TIMEOUT_S + 10, after=hung_at)
     # OpenCV's own default would wait ~30 s; the read timeout must win.
     assert lost, "a hung stream went unnoticed:\n" + r.output()[-3000:]

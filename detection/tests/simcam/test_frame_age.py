@@ -16,8 +16,8 @@ If the loop keeps up, that stays near zero. If frames are queueing, it climbs by
 about two thirds of a second every second.
 
 Two checks, and the first one is a control:
-  1. Today's way of reading (camera.read_frame, grab then retrieve) MUST be seen
-     falling behind. That is the G5 claim, and it is also proof the measurement
+  1. The old way of reading (grab then retrieve on the loop's own thread, as
+     main.py did before C3) MUST be seen falling behind. That is the G5 claim, and it is also proof the measurement
      can see lag at all. If this one stops failing to keep up, the second check
      passing would mean nothing (CLAUDE.md: a check reporting good news may not
      be running).
@@ -41,7 +41,7 @@ import cv2
 import pytest
 
 import camera
-from camera import CameraSource, configure_capture_logging, read_frame
+from camera import CameraSource, configure_capture_logging
 from simcam import fault
 from simcam.counting import read_index
 from simcam.make_counting_video import FPS
@@ -71,13 +71,18 @@ def period():
     return frames
 
 
-def open_sim():
+def sim_source():
     source = CameraSource.from_env({
         "CAMERA_SOURCE": fault.URL,
         "CAMERA_USERNAME": fault.USERNAME,
         "CAMERA_PASSWORD": fault.PASSWORD,
     })
     configure_capture_logging(source)
+    return source
+
+
+def open_sim():
+    source = sim_source()
     cap = cv2.VideoCapture(source.open_target(), cv2.CAP_FFMPEG, [
         cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 10000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000,
     ])
@@ -112,8 +117,9 @@ def test_todays_read_falls_behind_a_camera_faster_than_the_loop(period):
     end = time.monotonic() + RUN_S
     try:
         while time.monotonic() < end:
-            frame = read_frame(cap)
-            if frame is None:
+            cap.grab()                      # the old way: the NEXT frame, the oldest
+            ok, frame = cap.retrieve()
+            if not ok or frame is None:
                 continue
             samples.append((time.monotonic(), read_index(frame)))
             time.sleep(SLOW_LOOP_S)
@@ -131,8 +137,11 @@ def test_todays_read_falls_behind_a_camera_faster_than_the_loop(period):
 
 
 def test_the_reader_keeps_a_slow_loop_looking_at_now(period):
-    reader = camera.FrameReader(open_sim()).start()
+    reader = camera.FrameReader(sim_source()).start()
     samples = []
+    # The reader connects by itself (about 4 s, waiting for a keyframe): the
+    # measured window starts at the first frame, not before it.
+    assert reader.next_frame(timeout=20) is not None, "the reader never connected"
     end = time.monotonic() + RUN_S
     try:
         while time.monotonic() < end:
