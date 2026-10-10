@@ -4,7 +4,7 @@ main.py — All Clear Detection Service Entry Point
 Phase 3: live detection loop + debounce + API submission.
 
 Data flow per frame:
-  OpenCV (webcam)
+  FrameReader (its own thread)        [the newest frame from the camera, once]
     → PPEDetector.predict()           [YOLO inference on GPU]
     → PPEDetector.find_violations()   [filter for NO-Hardhat etc.]
     → ViolationTracker.should_alert()  [debounce + cooldown]
@@ -55,9 +55,8 @@ from debounce import ViolationTracker
 from camera import (
     CameraConfigError,
     CameraSource,
+    FrameReader,
     configure_capture_logging,
-    read_frame,
-    should_warn,
 )
 from alerts import send_violation_sms
 from api_client import (
@@ -66,7 +65,6 @@ from api_client import (
     AuthError,
     RejectedError,
     new_idempotency_key,
-    utc_now_iso,
 )
 from event_queue import EventQueue, QueueReplayer
 
@@ -87,6 +85,10 @@ COOLDOWN_S    = int(os.getenv("COOLDOWN_SECONDS", 60))
 # address, or a video file), with CAMERA_USERNAME / CAMERA_PASSWORD for its
 # login. See camera.CameraSource. It used to be `CAMERA_INDEX = 0` right here,
 # the one setting not read from .env (Labs4 block 1, C2).
+
+# How long the loop waits for a new frame before asking again. It only matters
+# when the camera has gone quiet; normally a new frame is already waiting.
+FRAME_WAIT_SECONDS = 1.0
 
 # Which camera this device is watching.
 #
@@ -241,9 +243,10 @@ def run_detection():
             logger.error("Could not open camera %s.", source.display)
         return
 
-    # Push camera to max FPS and disable internal buffer lag.
-    # CAP_PROP_BUFFERSIZE = 1 means OpenCV keeps only the latest frame,
-    # so we never process stale buffered frames when inference is slower than camera.
+    # Ask a webcam for its top frame rate and a one-frame buffer. FFmpeg, which
+    # reads network streams, rejects the buffer setting (measured 2026-10-10:
+    # cap.set returns False, and a slow loop was 7.9 s behind after 12 s).
+    # Keeping up is the FrameReader's job, below, not this setting.
     cap.set(cv2.CAP_PROP_FPS, 60)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
@@ -273,23 +276,20 @@ def run_detection():
     frame_count = 0
     fps_start = time.time()
 
-    empty_frames = 0   # consecutive; reset by the first good frame
+    # From here on the reader thread is the camera's only owner: the loop never
+    # touches `cap` again, it only receives frames. A recorded file gives every
+    # frame in order; a live camera gives the newest one each time.
+    reader = FrameReader(cap, every_frame=(source.kind == "file")).start()
 
     while True:
-        # Freshest frame, or None after a short pause. A dead or locked camera
-        # must not become a hot loop: see camera.py and OPEN_ITEMS 17.2.
-        frame = read_frame(cap)
-        if frame is None:
-            empty_frames += 1
-            if should_warn(empty_frames):
-                logger.warning(
-                    "No frame from camera (%d in a row). If another app such "
-                    "as Teams has the webcam, close it.", empty_frames,
-                )
+        # The newest frame not yet seen, or None if nothing new arrived within
+        # the wait. A dead or locked camera is reported by the reader, slowly
+        # and quietly (OPEN_ITEMS 17.2). If the reader thread has died this
+        # raises rather than returning None forever.
+        received = reader.next_frame(timeout=FRAME_WAIT_SECONDS)
+        if received is None:
             continue
-        if empty_frames:
-            logger.info("Camera recovered after %d empty frames.", empty_frames)
-            empty_frames = 0
+        frame = received.image
 
         # 1. Run YOLO inference
         results = detector.predict(frame, confidence=CONFIDENCE)
@@ -338,7 +338,11 @@ def run_detection():
                 # key. Step 3.5 will move this to enqueue time for the same
                 # reason.
                 idem = new_idempotency_key()
-                detected_at = utc_now_iso()
+                # When the camera's frame arrived, not when the alert fired
+                # (decision D2): the frame that passed the debounce, the same
+                # one whose confidence is stored. UTC, same format as before.
+                # It goes into the hash chain, so it should say when it happened.
+                detected_at = received.arrived_at.isoformat()
 
                 # Encode only if an image could actually be used. On a default
                 # site nothing wants the bytes, and JPEG-encoding every
@@ -475,7 +479,7 @@ def run_detection():
             cv2.imwrite(str(snapshot_path), annotated)
             logger.info(f"Snapshot saved → {snapshot_path.resolve()}")
 
-    cap.release()
+    reader.stop()          # the reader releases the camera, on its own thread
     cv2.destroyAllWindows()
     if replayer is not None:
         replayer.stop()

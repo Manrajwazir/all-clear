@@ -10,10 +10,22 @@ password can be used to connect without ever being printed: every printable
 form of a CameraSource shows it as ***. Tests: tests/test_camera_source.py,
 tests/simcam/test_credentials.py.
 
+ONE THREAD OWNS THE CAMERA (Labs4 block 1, C3, 2026-10-10). FrameReader reads
+the camera nonstop on its own thread and keeps one slot holding the newest
+frame. The main loop asks it for a frame and gets the newest one it hasn't had
+yet, numbered, with the moment it arrived. Why: a network camera doesn't wait.
+While YOLO works, its frames queue up, and reading them in order means looking
+at the past. Measured against the simulated camera on 2026-10-10: a loop
+managing 5 frames a second on a 15 fps stream was 7.9 s behind after 12 s and
+still falling (G5). With the reader it stays current. Frames the loop never
+gets to are dropped and counted. A recorded file is the exception: it has no
+clock, so the reader hands out every frame in order, as before. Tests:
+tests/test_frame_reader.py, tests/simcam/test_frame_age.py.
+
 READING A FRAME. OPEN_ITEMS 17.2, fixed 2026-09-26. On an empty frame main.py used to log and
 `continue` with no pause. A camera held by another app (Microsoft Teams, in
 practice) returns empty frames instantly, so the loop spun at full speed and
-wrote one warning per spin.
+wrote one warning per spin. That behaviour now lives inside the reader thread.
 
 Deliberately NOT a reconnect. The reconnect code that used to live in main.py
 was removed in ee01e9d because no retry can take a webcam back from Teams. This
@@ -21,17 +33,22 @@ only makes failure slow and quiet: pause briefly, and report the problem
 periodically instead of continuously.
 
 RTSP cameras will need real reconnect logic (a dropped stream DOES come back).
-That is the RTSP bench blocker, and belongs with it, not here.
+That is block 1 step C4, inside the reader.
 
 Kept out of main.py so it can be tested without a webcam or the model:
 tests/test_camera_read.py.
 """
 
+import logging
 import os
+import threading
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote, urlsplit, urlunsplit
+
+logger = logging.getLogger(__name__)
 
 
 class CameraConfigError(ValueError):
@@ -184,11 +201,13 @@ WARN_EVERY = 50
 
 
 def read_frame(cap, sleep=time.sleep):
-    """Return the freshest frame, or None after a short pause if there is none.
+    """Return the camera's next frame, or None after a short pause if there is none.
 
-    grab() then retrieve() rather than read(): grab discards anything queued, so
-    when inference is slower than the camera we process the newest frame, not a
-    stale one.
+    The NEXT frame, which is the oldest one waiting, not the newest. This used to
+    say grab() "discards anything queued"; measured 2026-10-10, it doesn't: on a
+    network stream, a slow loop calling this fell further behind every second
+    (tests/simcam/test_frame_age.py). Keeping up is FrameReader's job, which
+    calls this nonstop on its own thread.
     """
     cap.grab()
     ret, frame = cap.retrieve()
@@ -201,3 +220,139 @@ def read_frame(cap, sleep=time.sleep):
 def should_warn(consecutive_failures):
     """Report the first empty frame at once, then every WARN_EVERY after it."""
     return consecutive_failures == 1 or consecutive_failures % WARN_EVERY == 0
+
+
+# ── One thread owns the camera ──────────────────────────────────────────────
+
+
+class FrameReaderError(RuntimeError):
+    """The reader thread died. Raised to the main loop instead of None forever."""
+
+
+@dataclass(frozen=True)
+class Frame:
+    """One frame, as the reader received it."""
+
+    image: "object"                # the picture, a numpy array
+    seq: int                       # 1, 2, 3 ... in arrival order; a gap is skipped frames
+    arrived_at: datetime           # UTC. An alert on this frame is detected_at = this (D2)
+    arrived_mono: float            # time.monotonic() on arrival, for measuring age
+
+
+class FrameReader:
+    """Reads the camera on its own thread; hands the main loop the newest frame, once.
+
+    From start() on, this is the camera's only owner: nothing else may read or
+    release it. OpenCV makes no promise that a capture is safe across threads,
+    and a read racing a release can crash inside C++ with no Python error.
+
+    One slot, not a queue. Each frame replaces the last, so however slow the
+    main loop is, it gets what the camera sent most recently. And never the same
+    frame twice: a loop faster than the camera waits for the next frame rather
+    than being handed the last one again, which the debounce would count as a
+    second sighting.
+
+    every_frame=True is for a recorded file: the reader waits for each frame to
+    be taken before reading the next, so every frame is handed out, in order.
+    """
+
+    def __init__(self, cap, *, every_frame: bool = False, sleep=time.sleep):
+        self._cap = cap
+        self._every_frame = every_frame
+        self._sleep = sleep
+        self._slot: Frame | None = None
+        self._last_seq = 0           # numbers given to frames so far
+        self._delivered_seq = 0      # the last number handed to the main loop
+        self._delivered = 0
+        self._skipped = 0
+        self._error: BaseException | None = None
+        self._changed = threading.Condition()
+        self._stopping = threading.Event()
+        self._thread = threading.Thread(target=self._run, name="allclear-camera", daemon=True)
+
+    def start(self) -> "FrameReader":
+        self._thread.start()
+        return self
+
+    def is_alive(self) -> bool:
+        return self._thread.is_alive()
+
+    @property
+    def stats(self) -> dict:
+        """Frames received from the camera, handed to the loop, and never handed out."""
+        with self._changed:
+            return {
+                "received": self._last_seq,
+                "delivered": self._delivered,
+                "skipped": self._skipped,
+            }
+
+    def next_frame(self, timeout: float) -> Frame | None:
+        """The newest frame not yet handed out, waiting up to `timeout` for one.
+
+        None means nothing new arrived in time. Raises FrameReaderError if the
+        reader thread has died, so a crash can't pass for a quiet camera.
+        """
+        deadline = time.monotonic() + timeout
+        with self._changed:
+            while True:
+                slot = self._slot
+                if slot is not None and slot.seq > self._delivered_seq:
+                    self._skipped += slot.seq - self._delivered_seq - 1
+                    self._delivered_seq = slot.seq
+                    self._delivered += 1
+                    self._changed.notify_all()     # an every_frame reader is waiting on this
+                    return slot
+                if self._error is not None:
+                    raise FrameReaderError("the camera reader thread died") from self._error
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or self._stopping.is_set():
+                    return None
+                self._changed.wait(remaining)
+
+    def stop(self, timeout: float = 5.0) -> None:
+        """Ask the thread to finish, and wait for it. It releases the camera itself."""
+        self._stopping.set()
+        with self._changed:
+            self._changed.notify_all()
+        if self._thread.is_alive():
+            self._thread.join(timeout)
+        if self._thread.is_alive():
+            # Stuck inside a read (C4 adds the timeout that bounds it). It is a
+            # daemon thread, so it can't hold the program open.
+            logger.warning("Camera reader still busy after %.0f s; not waiting for it.", timeout)
+
+    def _run(self) -> None:
+        empty = 0
+        try:
+            while not self._stopping.is_set():
+                image = read_frame(self._cap, sleep=self._sleep)
+                if image is None:
+                    empty += 1
+                    if should_warn(empty):
+                        logger.warning(
+                            "No frame from camera (%d in a row). If another app such "
+                            "as Teams has the webcam, close it.", empty,
+                        )
+                    continue
+                if empty:
+                    logger.info("Camera recovered after %d empty frames.", empty)
+                    empty = 0
+                arrived_mono = time.monotonic()
+                arrived_at = datetime.now(timezone.utc)
+                with self._changed:
+                    if self._every_frame:
+                        while (self._slot is not None
+                               and self._slot.seq > self._delivered_seq
+                               and not self._stopping.is_set()):
+                            self._changed.wait(0.1)
+                    self._last_seq += 1
+                    self._slot = Frame(image, self._last_seq, arrived_at, arrived_mono)
+                    self._changed.notify_all()
+        except BaseException as exc:  # noqa: BLE001 - reported to the loop, not swallowed
+            logger.exception("Camera reader stopped by an unexpected error")
+            with self._changed:
+                self._error = exc
+                self._changed.notify_all()
+        finally:
+            self._cap.release()
