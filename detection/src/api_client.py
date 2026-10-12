@@ -472,6 +472,10 @@ class AllClearClient:
         self._heartbeat_thread.start()
         logger.info("Heartbeat thread started (every %ss).", interval_seconds)
 
+    def heartbeat_alive(self) -> bool:
+        """Is the heartbeat thread running (or never started)? main.py exits 1 if it died."""
+        return self._heartbeat_thread is None or self._heartbeat_thread.is_alive()
+
     def close(self) -> None:
         """Stop the heartbeat thread and release the HTTP session."""
         self._stop.set()

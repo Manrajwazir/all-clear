@@ -346,6 +346,7 @@ class FrameReader:
         self._skipped = 0
         self._state = "connecting"
         self._error: BaseException | None = None
+        self._unreadable = False
 
         # The reader thread's own bookkeeping.
         self._cap = None
@@ -377,6 +378,12 @@ class FrameReader:
     def finished(self) -> bool:
         """A recorded file has ended. A live camera is never finished."""
         return self.state == "finished"
+
+    @property
+    def unreadable(self) -> bool:
+        """A recorded file that couldn't be opened at all: a setting to fix, not an outage."""
+        with self._changed:
+            return self._unreadable
 
     @property
     def stats(self) -> dict:
@@ -455,6 +462,9 @@ class FrameReader:
             if cap is None:
                 if self._source.kind == "file":
                     logger.error("Video file could not be opened: %s", self._source.display)
+                    with self._changed:
+                        self._unreadable = True
+                    self._outage = None
                     self._set_state("finished")
                     return
                 continue
@@ -528,8 +538,11 @@ class FrameReader:
             # Looked at as if they were now, they'd be stamped with the wrong
             # time. So drop what came back, and reconnect. Not for a file: its
             # reader waits on the loop between frames, and a file can't hang.
+            # The first read after connecting is exempt: some cameras are slow to
+            # send their first frame, and that's a start, not a hang (C4 review).
             stalled = self._clock() - asked
-            if ok and self._source.kind != "file" and stalled > self._read_timeout_s:
+            if (ok and self._source.kind != "file" and frames_this_connection > 0
+                    and stalled > self._read_timeout_s):
                 logger.warning("Camera stream stalled for %.0f s; dropping what it sent late",
                                stalled)
                 ok, image = False, None
@@ -591,9 +604,11 @@ class FrameReader:
             if not self._announced_refused:
                 self._announced_refused = True
                 logger.error(
-                    "Camera at %s answers but refuses the stream: check CAMERA_PASSWORD "
-                    "and the stream path in CAMERA_SOURCE. Trying again every %.0f s, "
-                    "so a wrong password can't lock the camera's account.", where, seconds)
+                    "Camera at %s answers but refuses the stream: check CAMERA_PASSWORD, "
+                    "the stream path in CAMERA_SOURCE, and whether the camera already has "
+                    "as many viewers as it allows (a recorder may be holding them). Trying "
+                    "again every %.0f s, so a wrong password can't lock the camera's "
+                    "account.", where, seconds)
             else:
                 logger.info("Still refused by the camera; next try in %.0f s", seconds)
             return seconds
@@ -604,7 +619,8 @@ class FrameReader:
         if src.kind == "webcam" and self._failure in ("no frames", "did not open"):
             logger.warning(
                 "Webcam %s not delivering frames; retrying in %.0f s. If another app "
-                "(Teams, Zoom) has the camera, close it.", src.location, seconds)
+                "(Teams, Zoom) has the camera, close it; or there is no webcam %s.",
+                src.location, seconds, src.location)
         elif self._failure == "unreachable":
             logger.warning("Camera unreachable at %s; retrying in %.0f s", where, seconds)
         elif self._failure == "refused":

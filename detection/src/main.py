@@ -43,7 +43,9 @@ import os
 import sys
 import cv2
 import time
+import signal
 import logging
+import threading
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -56,6 +58,7 @@ from camera import (
     CameraConfigError,
     CameraSource,
     FrameReader,
+    FrameReaderError,
     configure_capture_logging,
 )
 from alerts import send_violation_sms
@@ -151,7 +154,80 @@ else:
     logger.info("Twilio enabled: SMS fires only after a confirmed 201.")
 
 
+# ── Running unattended (Labs4 block 1, C5) ──────────────────────────────────
+
+# The model failing on one frame is skipped; this many in a row means the
+# model or the GPU is broken, and the program exits 1 for a fresh start (D4).
+MODEL_FAILURES_BEFORE_EXIT = 10
+
+
+def decide_headless(env, platform) -> bool:
+    """No window? HEADLESS=true or false decides. Unset: Linux with no screen is headless.
+
+    A Linux machine has a screen only if DISPLAY or WAYLAND_DISPLAY is set; on
+    one without, cv2.imshow throws and the program dies (G6). Windows always
+    has a screen, so there it's only ever the setting. An unclear value is a
+    bad setting (ValueError), not a guess.
+    """
+    raw = (env.get("HEADLESS") or "").strip().lower()
+    if raw in ("1", "true", "yes"):
+        return True
+    if raw in ("0", "false", "no"):
+        return False
+    if raw:
+        raise ValueError(f"HEADLESS must be true or false, not {raw!r}")
+    return platform.startswith("linux") and not (
+        env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
+
+
+def make_stop_handler(stop, force_exit=os._exit):
+    """The handler for a stop signal: raise the flag, nothing else.
+
+    No real work in a signal handler: it runs in the middle of whatever the
+    program was doing. The loop sees the flag, finishes the frame in hand
+    (a send included), and the shutdown runs. A second signal means something
+    is stuck: leave at once, with exit code 1.
+    """
+    def on_signal(_signum, _frame):
+        if stop.is_set():
+            force_exit(1)
+            return
+        stop.set()
+    return on_signal
+
+
+def install_stop_signals(stop) -> None:
+    """Ctrl+C (SIGINT), a service manager's stop (SIGTERM) and, on Windows,
+    Ctrl+Break (SIGBREAK) all mean the same: finish up and stop cleanly (G7)."""
+    handler = make_stop_handler(stop)
+    for name in ("SIGINT", "SIGTERM", "SIGBREAK"):
+        sig = getattr(signal, name, None)
+        if sig is not None:
+            signal.signal(sig, handler)
+
+
+def install_thread_death_logging() -> None:
+    """A thread dying of an uncaught error goes in the log, traceback and all.
+
+    Python's default only prints it to the console. The main loop then notices
+    the thread is gone and exits 1; this makes sure the reason is on record.
+    """
+    def log_thread_death(args):
+        if issubclass(args.exc_type, SystemExit):
+            return
+        name = args.thread.name if args.thread is not None else "unknown"
+        logger.critical("Thread %s died of an unexpected error", name,
+                        exc_info=(args.exc_type, args.exc_value, args.exc_traceback))
+    threading.excepthook = log_thread_death
+
+
 def run_detection():
+    # Stop signals and thread deaths first, so even start-up can be stopped
+    # cleanly and nothing dies unrecorded.
+    stop = threading.Event()
+    install_stop_signals(stop)
+    install_thread_death_logging()
+
     # ── Which camera, checked before anything else ────────────────────────
     #
     # A bad camera setting can't fix itself, so it stops start-up at once,
@@ -163,6 +239,14 @@ def run_detection():
         logger.error("Camera setting rejected: %s", exc)
         raise SystemExit(4)
     configure_capture_logging(source)
+
+    try:
+        headless = decide_headless(os.environ, sys.platform)
+    except ValueError as exc:
+        logger.error("Setting rejected: %s", exc)
+        raise SystemExit(4)
+    if headless:
+        logger.info("Headless mode: no window, no drawing, no keyboard.")
 
     # ── Verify the device key BEFORE loading the model or opening the camera ──
     #
@@ -211,7 +295,9 @@ def run_detection():
                 "Device key REJECTED — this device is unknown or revoked. %s", exc
             )
             queue.close()
-            return
+            # Exit 3: don't restart. A rejected key is rejected again forever;
+            # someone has to provision a new one.
+            return 3
         except AllClearError as exc:
             # Unreachable is NOT fatal any more. This is the outage case, and
             # the whole point of the queue is to keep watching through it.
@@ -253,13 +339,12 @@ def run_detection():
     if queue is not None:
         c = queue.counts()
         print(f"  Outage queue: {QUEUE_DB_PATH}  ({c['pending']} pending, {c['dead']} dead)")
-    print("  Press  q or ESC  to quit  |  s  to save a snapshot")
-    print("  NOTE: click the camera window first, THEN press q")
+    if headless:
+        print("  Headless:     no window. Stop with Ctrl+C, or the service manager")
+    else:
+        print("  Press  q or ESC  to quit  |  s  to save a snapshot")
+        print("  NOTE: click the camera window first, THEN press q")
     print("=" * 62 + "\n")
-
-    fps = 0.0
-    frame_count = 0
-    fps_start = time.time()
 
     # The camera belongs to the reader thread: it connects, reads, and
     # reconnects when the stream breaks. The loop never touches the camera, it
@@ -273,39 +358,123 @@ def run_detection():
         refused_wait_s=CAMERA_REFUSED_WAIT_S,
     ).start()
 
-    while True:
+    # Every thread the program depends on, and how to tell it is still running.
+    # If one dies the loop exits 1, so the service manager starts a fresh
+    # program: a half-dead one looks alive and watches nothing (plan §4.4).
+    watched = {"camera reader": lambda: reader.is_alive() or reader.finished}
+    if replayer is not None:
+        watched["replay"] = replayer.is_alive
+    if client is not None:
+        watched["heartbeat"] = client.heartbeat_alive
+
+    try:
+        detection_loop(
+            reader, detector, tracker, client, queue,
+            stop=stop, headless=headless, watched=watched,
+        )
+    finally:
+        # Runs however the loop ended, a crash included: let go of the camera,
+        # stop the threads, say what's still queued.
+        reader.stop()          # the reader releases the camera, on its own thread
+        if not headless:
+            cv2.destroyAllWindows()
+        if replayer is not None:
+            replayer.stop()
+        if client is not None:
+            # Stops the heartbeat thread, so the dashboard sees this device go
+            # stale rather than showing it as alive after the process is gone.
+            client.close()
+        if queue is not None:
+            left = queue.counts()
+            if left["pending"]:
+                # Said plainly on the way out. These are real violations that have
+                # not reached the server; they will go on the next start.
+                logger.warning(
+                    "%s event(s) still queued — they will replay next start.",
+                    left["pending"],
+                )
+            queue.close()
+
+    if reader.unreadable:
+        logger.error("Stopped: the video file in CAMERA_SOURCE can't be read.")
+        return 4
+    logger.info("Detection loop stopped cleanly.")
+    return 0
+
+
+def detection_loop(reader, detector, tracker, client, queue, *, stop, headless, watched):
+    """Frames in, violations out, until asked to stop. Returns "stopped" or "finished".
+
+    Kept apart from run_detection() so it can be run with a fake camera and a
+    fake model (tests/test_loop.py). The alert path inside it, from "6. For
+    each violation" down, was moved here in C5 without changing a line.
+
+    Raises SystemExit(1) if a thread it depends on dies, or the model fails on
+    MODEL_FAILURES_BEFORE_EXIT frames in a row: a fresh start is the fix for
+    both, and exit code 1 asks the service manager for one.
+    """
+    fps = 0.0
+    frame_count = 0
+    fps_start = time.time()
+    model_failures = 0     # in a row; reset by the first frame the model gets through
+
+    while not stop.is_set():
+        for name, alive in watched.items():
+            if not alive():
+                logger.critical(
+                    "The %s thread died; exiting so the service manager restarts it.", name)
+                raise SystemExit(1)
+
         # The newest frame not yet seen, or None if nothing new arrived within
         # the wait. Outages are the reader's business: it reconnects, and logs
-        # each one once. If the reader thread has died this raises rather than
-        # returning None forever.
-        received = reader.next_frame(timeout=FRAME_WAIT_SECONDS)
+        # each one once.
+        try:
+            received = reader.next_frame(timeout=FRAME_WAIT_SECONDS)
+        except FrameReaderError:
+            logger.critical(
+                "The camera reader thread died; exiting so the service manager restarts it.")
+            raise SystemExit(1)
         if received is None:
             if reader.finished:
-                break               # a recorded file has ended: stop cleanly
+                return "finished"   # a recorded file has ended
+            if not headless and _quit_pressed(cv2.waitKey(1) & 0xFF):
+                return "stopped"    # q still works while the camera is down
             continue
         frame = received.image
 
-        # 1. Run YOLO inference
-        results = detector.predict(frame, confidence=CONFIDENCE)
+        # 1-2. YOLO, then keep the violation classes. One frame the model can't
+        # handle is skipped; ten in a row means the model or GPU is broken, and
+        # skipping forever would look like a safe site (decision D4).
+        try:
+            results = detector.predict(frame, confidence=CONFIDENCE)
+            violations = detector.find_violations(results[0])
+        except Exception:  # noqa: BLE001 - counted, logged, and capped below
+            model_failures += 1
+            logger.exception("Model failed on a frame (%d in a row); skipping it.",
+                             model_failures)
+            if model_failures >= MODEL_FAILURES_BEFORE_EXIT:
+                logger.critical(
+                    "Model failed on %d frames in a row; exiting so the service "
+                    "manager restarts it.", model_failures)
+                raise SystemExit(1)
+            continue
+        model_failures = 0
 
-        # 2. Filter for violation classes only
-        violations = detector.find_violations(results[0])
+        # 3-5. Boxes, frame rate and status bar: only for a window to show.
+        # Headless, nobody would see them.
+        if not headless:
+            annotated = results[0].plot()
 
-        # 3. Draw bounding boxes + labels on frame
-        annotated = results[0].plot()
+            frame_count += 1
+            if frame_count % 30 == 0:
+                fps = 30 / (time.time() - fps_start)
+                fps_start = time.time()
 
-        # 4. Rolling FPS (recalculate every 30 frames)
-        frame_count += 1
-        if frame_count % 30 == 0:
-            fps = 30 / (time.time() - fps_start)
-            fps_start = time.time()
-
-        # 5. Status bar overlay
-        num_violations = len(violations)
-        label = f"FPS: {fps:.1f}  |  Active violations: {num_violations}"
-        color = (0, 0, 220) if num_violations > 0 else (0, 180, 0)
-        cv2.putText(annotated, label, (10, 32),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.85, color, 2, cv2.LINE_AA)
+            num_violations = len(violations)
+            label = f"FPS: {fps:.1f}  |  Active violations: {num_violations}"
+            color = (0, 0, 220) if num_violations > 0 else (0, 180, 0)
+            cv2.putText(annotated, label, (10, 32),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.85, color, 2, cv2.LINE_AA)
 
         # 6. For each violation — check debounce, then save + alert
         for v in violations:
@@ -460,39 +629,28 @@ def run_detection():
                         snapshot_key=result.violation_id,
                     )
 
+        if headless:
+            continue
         cv2.imshow("All Clear — Detection", annotated)
 
         # waitKey(1) — minimal delay, GPU inference controls actual FPS now
         key = cv2.waitKey(1) & 0xFF
-        if key == ord('q') or key == 27:  # 27 = ESC
-            logger.info("Quit signal received.")
-            break
+        if _quit_pressed(key):
+            logger.info("Quit key pressed.")
+            return "stopped"
         elif key == ord('s'):
             snapshot_path = Path("../docs/phase1_snapshot.jpg")
             snapshot_path.parent.mkdir(parents=True, exist_ok=True)
             cv2.imwrite(str(snapshot_path), annotated)
             logger.info(f"Snapshot saved → {snapshot_path.resolve()}")
 
-    reader.stop()          # the reader releases the camera, on its own thread
-    cv2.destroyAllWindows()
-    if replayer is not None:
-        replayer.stop()
-    if client is not None:
-        # Stops the heartbeat thread, so the dashboard sees this device go
-        # stale rather than showing it as alive after the process is gone.
-        client.close()
-    if queue is not None:
-        left = queue.counts()
-        if left["pending"]:
-            # Said plainly on the way out. These are real violations that have
-            # not reached the server; they will go on the next start.
-            logger.warning(
-                "%s event(s) still queued — they will replay next start.",
-                left["pending"],
-            )
-        queue.close()
-    logger.info("Detection loop stopped cleanly.")
+    logger.info("Stop requested; the frame in hand is finished. Shutting down.")
+    return "stopped"
+
+
+def _quit_pressed(key):
+    return key == ord('q') or key == 27  # 27 = ESC
 
 
 if __name__ == "__main__":
-    run_detection()
+    sys.exit(run_detection())

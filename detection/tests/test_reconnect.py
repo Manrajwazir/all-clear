@@ -223,6 +223,40 @@ def test_a_frame_that_arrives_after_a_stall_is_a_hang_not_a_frame(make, caplog):
     assert len(lines(caplog, "Camera stream lost")) == 1
 
 
+def test_a_slow_first_frame_is_not_a_hang(make, caplog):
+    """C4 review, 2026-10-12: the stall rule must not apply to the first read after
+    connecting, or a camera slow to send its first frame would never connect."""
+    caplog.set_level(logging.INFO)
+    t = FakeTime()
+    first = img(1)
+    cam = FakeCamera([first], then="hang", hang=5, on_read=lambda i: t.wait(6) if i == 0 else None)
+    reader, _ = make(STREAM, Opener(cam), t=t, read_timeout_s=5)
+
+    got = reader.next_frame(timeout=2)
+
+    assert got is not None and got.image is first
+    assert not lines(caplog, "stalled|stream lost")
+
+
+def test_the_refusal_message_names_a_busy_camera_too(make, caplog):
+    """C4 review: a camera already at its viewer limit says no as fast as a wrong
+    password does. The message must not send the installer only to the password."""
+    caplog.set_level(logging.INFO)
+    opener = Opener()
+    reader, t = make(STREAM, opener)
+    wait_until(lambda: lines(caplog, "refuses the stream"))
+    assert re.search("viewer", lines(caplog, "refuses the stream")[0], re.I)
+
+
+def test_a_missing_webcam_isnt_blamed_on_teams_alone(make, caplog):
+    caplog.set_level(logging.INFO)
+    opener = Opener()                                   # webcam 0 never opens
+    reader, t = make(WEBCAM, opener)
+    wait_until(lambda: opener.opens >= 2)
+    hint = lines(caplog, "Webcam 0")[0]
+    assert re.search(r"no webcam 0", hint, re.I), hint
+
+
 # ── The record of being blind ──────────────────────────────────────────────
 
 

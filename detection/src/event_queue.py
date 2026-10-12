@@ -370,6 +370,10 @@ class QueueReplayer:
         self._thread.start()
         logger.info("Queue replay thread started (every %ss).", self.tick_seconds)
 
+    def is_alive(self) -> bool:
+        """Is the replay thread running? main.py exits 1 if it has died."""
+        return self._thread is not None and self._thread.is_alive()
+
     def stop(self) -> None:
         self._stop.set()
         if self._thread is not None:
