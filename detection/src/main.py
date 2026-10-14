@@ -80,7 +80,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- Config (reads from .env, falls back to defaults) ---
-MODEL_PATH    = "models/ppe_v1.pt"
+# A model file that is missing or can't be loaded is a bad setting: exit 4.
+MODEL_PATH    = os.getenv("MODEL_PATH", "models/ppe_v1.pt")
 CONFIDENCE    = float(os.getenv("DETECTION_CONFIDENCE_THRESHOLD", 0.6))
 DEBOUNCE_F    = int(os.getenv("DEBOUNCE_FRAMES", 5))
 COOLDOWN_S    = int(os.getenv("COOLDOWN_SECONDS", 60))
@@ -248,6 +249,13 @@ def run_detection():
     if headless:
         logger.info("Headless mode: no window, no drawing, no keyboard.")
 
+    # The model file, checked before the network too: a missing one can't fix
+    # itself, and restarting would only fail the same way (exit 4, not 1).
+    if not Path(MODEL_PATH).is_file():
+        logger.error("Model file not found: %s (set MODEL_PATH, or copy the weights there)",
+                     MODEL_PATH)
+        raise SystemExit(4)
+
     # ── Verify the device key BEFORE loading the model or opening the camera ──
     #
     # Fail fast, deliberately. On 2026-08-20 this service ran for a full session
@@ -313,7 +321,18 @@ def run_detection():
         replayer.start()
 
     logger.info("Loading PPE model...")
-    detector = PPEDetector(model_path=MODEL_PATH)
+    try:
+        detector = PPEDetector(model_path=MODEL_PATH)
+    except Exception:  # noqa: BLE001 - any load failure needs a person, not a restart
+        logger.exception("Model file %s could not be loaded; is it the right file, "
+                         "and complete?", MODEL_PATH)
+        if replayer is not None:
+            replayer.stop()
+        if client is not None:
+            client.close()
+        if queue is not None:
+            queue.close()
+        return 4
 
     # One tracker per process — tracks debounce + cooldown state
     tracker = ViolationTracker(

@@ -28,12 +28,19 @@ logger = logging.getLogger(__name__)
 
 # ---------- Twilio SMS ----------
 
+# Twilio's client waits forever by default. A hung SMS would hold the detection
+# loop, and a clean stop could never finish (C5 review, 2026-10-13).
+SMS_TIMEOUT_S = 10
+
+
 def get_twilio_client():
-    """Create and return a Twilio client."""
+    """Create and return a Twilio client that gives up after SMS_TIMEOUT_S."""
+    from twilio.http.http_client import TwilioHttpClient
     from twilio.rest import Client
     return Client(
         os.environ["TWILIO_ACCOUNT_SID"],
-        os.environ["TWILIO_AUTH_TOKEN"]
+        os.environ["TWILIO_AUTH_TOKEN"],
+        http_client=TwilioHttpClient(timeout=SMS_TIMEOUT_S),
     )
 
 

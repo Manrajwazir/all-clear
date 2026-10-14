@@ -285,3 +285,39 @@ def test_a_video_file_that_cant_be_read_exits_4(tmp_path):
     out = r.stdout + r.stderr
     assert "LOCAL LOG ONLY" in out, out[-2000:]
     assert r.returncode == 4, f"exit {r.returncode}; output:\n{out[-2000:]}"
+
+
+# ── C5 review, 2026-10-13: a bad model file, and an SMS that hangs ─────────
+
+
+@pytest.mark.parametrize("problem", ["missing", "corrupt"])
+def test_a_model_file_that_cant_be_loaded_exits_4(tmp_path, problem):
+    """A bad model file can't fix itself: exit 4, don't restart. It used to exit 1,
+    which systemd would restart forever."""
+    model = tmp_path / "ppe.pt"
+    if problem == "corrupt":
+        model.write_bytes(b"not a model at all")
+    env = _safe_env(tmp_path, MODEL_PATH=str(model))
+    r = subprocess.run([sys.executable, "src/main.py"], cwd=DETECTION, env=env,
+                       capture_output=True, text=True, timeout=180)
+    out = r.stdout + r.stderr
+    assert "LOCAL LOG ONLY" in out, out[-2000:]
+    assert r.returncode == 4, f"exit {r.returncode}; output:\n{out[-2000:]}"
+    assert "model" in out.lower()
+
+
+def test_the_sms_call_gives_up_instead_of_hanging(monkeypatch):
+    """Twilio's client has no timeout by default (checked 2026-10-13). A hung SMS
+    would hold the loop, and a clean stop could never finish."""
+    import dotenv
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda *a, **k: False)
+    monkeypatch.setenv("TWILIO_ACCOUNT_SID", "ACtest_not_a_real_account")
+    monkeypatch.setenv("TWILIO_AUTH_TOKEN", "not_a_real_token")
+    sys.modules.pop("alerts", None)
+    import alerts
+    try:
+        client = alerts.get_twilio_client()
+        assert client.http_client.timeout is not None, "no timeout: an SMS could hang forever"
+        assert client.http_client.timeout <= 15
+    finally:
+        sys.modules.pop("alerts", None)
