@@ -340,7 +340,9 @@ class AllClearClient:
         endpoint that authenticates and changes nothing but a timestamp.
         """
         body: dict = {"status": status}
-        for name in ("cpu_temp", "uptime_seconds", "model_version"):
+        # reason and blind_seconds say why a device is degraded (Labs4 C6). The
+        # server accepts them and, for now, drops them with the other metrics.
+        for name in ("reason", "blind_seconds", "cpu_temp", "uptime_seconds", "model_version"):
             if name in metrics and metrics[name] is not None:
                 body[name] = metrics[name]
         self._post("/api/v1/devices/heartbeat", body)
@@ -352,8 +354,11 @@ class AllClearClient:
         Better to refuse to start than to run for six hours looking healthy and
         discover at the first violation that nothing was ever being recorded.
         That is close to what happened on 2026-08-20.
+
+        Says "degraded, starting", not "online": at this point no camera has
+        been opened and no frame looked at, so nothing is being watched yet.
         """
-        self.heartbeat(status="online")
+        self.heartbeat(status="degraded", reason="starting")
 
     def submit_violation(
         self,
@@ -443,7 +448,7 @@ class AllClearClient:
 
     # ── heartbeat thread ───────────────────────────────────────────────────
 
-    def start_heartbeat(self, interval_seconds: int = 30) -> None:
+    def start_heartbeat(self, interval_seconds: float = 30, health=None) -> None:
         """
         Begin sending a heartbeat on a background daemon thread.
 
@@ -451,6 +456,12 @@ class AllClearClient:
         exits. Failures are logged and swallowed: a missed heartbeat means the
         dashboard shows this device as stale, which is exactly what it should
         show — it is not a reason to stop detecting.
+
+        `health` returns the body to send each time: {"status": "online"}, or
+        "degraded" with the reason (main.Watching.heartbeat_fields). It used to
+        be "online" always, even with the camera dead for an hour (G8). If the
+        check itself breaks, the heartbeat says "error": not knowing is not
+        "online".
         """
         if self._heartbeat_thread is not None:
             return
@@ -458,7 +469,12 @@ class AllClearClient:
         def loop() -> None:
             while not self._stop.wait(interval_seconds):
                 try:
-                    self.heartbeat()
+                    fields = health() if health else {"status": "online"}
+                except Exception:  # noqa: BLE001 - a bug in the check, said as such
+                    logger.exception("Heartbeat health check failed; sending status 'error'")
+                    fields = {"status": "error"}
+                try:
+                    self.heartbeat(**fields)
                 except AuthError as exc:
                     # Worth its own branch: this device has been switched off.
                     # Keep detecting locally, but say so loudly.

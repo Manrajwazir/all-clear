@@ -34,6 +34,13 @@ reconnect for that reason), but SLOW retries cost nothing, which keeps the
 OPEN_ITEMS 17.2 fix: a dead or held camera is waited on, never spun on. Tests:
 tests/test_reconnect.py, tests/simcam/test_blackbox.py checks 2, 3, 4 and 6,
 tests/simcam/test_reconnect_soak.py.
+
+HEALTH (Labs4 block 1, C6, 2026-10-16). FrameReader.health() says whether a
+frame is arriving, judged by the age of the newest one: "online" if it is under
+HEALTH_GRACE_S old, otherwise "degraded" with the reason (BLIND_REASONS). Not
+judged by the reader's state, which a read that never returns leaves at
+"streaming". main.Watching adds the model's side, and the heartbeat and the
+STATUS line both report it. Tests: tests/test_health.py.
 """
 
 import logging
@@ -245,6 +252,17 @@ HEALTHY_RESET_S = 60
 REFUSALS_BEFORE_WAITING = 3
 REFUSALS_BEFORE_WAITING_AFTER_STREAMING = 10
 
+# What a failed attempt means, as health() reports it: short codes, because the
+# server will store them (OPEN_ITEMS 17.7, layer 2). Besides these: "connecting"
+# (no attempt has finished yet), "stream_lost" (it was streaming, now reconnecting),
+# "stalled" (connected, nothing arriving) and "ended" (a video file finished).
+BLIND_REASONS = {
+    "unreachable": "unreachable",    # nothing answers at the address
+    "refused": "refused",            # answers and refuses: password, path, or viewers full
+    "did not open": "no_answer",     # took the connection, never opened the stream
+    "no frames": "no_frames",        # opened, sent nothing
+}
+
 
 class Backoff:
     """1 s, 2 s, 4 s, 8 s, 16 s, then every 30 s; back to 1 s after a minute of good streaming.
@@ -284,6 +302,20 @@ class Frame:
     seq: int                       # 1, 2, 3 ... in arrival order; a gap is skipped frames
     arrived_at: datetime           # UTC. An alert on this frame is detected_at = this (D2)
     arrived_mono: float            # monotonic clock on arrival, for measuring age
+
+
+# How old the newest frame may be before "online" stops being true. Long enough
+# that a one-second blip doesn't flip the dashboard back and forth (plan §4.5).
+HEALTH_GRACE_S = 10
+
+
+@dataclass(frozen=True)
+class Health:
+    """Is a camera frame arriving, and if not, why."""
+
+    status: str                    # "online" or "degraded"
+    reason: str | None             # why it's degraded; None when online
+    age_s: float                   # seconds since the newest frame (since starting, if none yet)
 
 
 def _hms(moment: datetime) -> str:
@@ -347,6 +379,9 @@ class FrameReader:
         self._state = "connecting"
         self._error: BaseException | None = None
         self._unreadable = False
+        # Why no frame is arriving, for health(): the last thing that went wrong.
+        self._blind_reason = "connecting"
+        self._started_mono = clock()
 
         # The reader thread's own bookkeeping.
         self._cap = None
@@ -384,6 +419,25 @@ class FrameReader:
         """A recorded file that couldn't be opened at all: a setting to fix, not an outage."""
         with self._changed:
             return self._unreadable
+
+    def health(self, grace_s: float = HEALTH_GRACE_S) -> Health:
+        """Is a camera frame arriving, and if not, why (C6, plan §4.5).
+
+        Judged by the age of the newest frame, not by the state. A read that
+        never returns (a webcam driver has no timeout) leaves the state at
+        "streaming" while nothing arrives; the frame's age can't be fooled that
+        way. Before the first frame nothing is being watched, so that is
+        degraded however recent the start.
+        """
+        with self._changed:
+            last = self._last_frame
+            age = self._clock() - (last.arrived_mono if last else self._started_mono)
+            if self._state == "finished":
+                return Health("degraded", "ended", age)
+            if last is not None and age <= grace_s:
+                return Health("online", None, age)
+            reason = "stalled" if self._state == "streaming" else self._blind_reason
+            return Health("degraded", reason, age)
 
     @property
     def stats(self) -> dict:
@@ -588,6 +642,8 @@ class FrameReader:
         last = self._last_frame
         self._outage = {"since": last.arrived_mono, "startup": False, "attempts": 0,
                         "last": last.arrived_at}
+        with self._changed:
+            self._blind_reason = "stream_lost"
         self._set_state("reconnecting")
         logger.warning("Camera stream lost (last frame %s); reconnecting", _hms(last.arrived_at))
 
@@ -597,6 +653,10 @@ class FrameReader:
         where = f"{src.host}:{src.port}" if src.kind == "stream" else src.display
         limit = (REFUSALS_BEFORE_WAITING_AFTER_STREAMING if self._ever_streamed
                  else REFUSALS_BEFORE_WAITING)
+        if self._failure:
+            # What health() reports until a frame arrives or something else fails.
+            with self._changed:
+                self._blind_reason = BLIND_REASONS[self._failure]
 
         if self._failure == "refused" and self._refusals >= limit:
             seconds = self._refused_wait_s

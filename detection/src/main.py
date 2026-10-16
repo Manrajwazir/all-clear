@@ -55,10 +55,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from detector import PPEDetector, VIOLATION_CLASSES
 from debounce import ViolationTracker
 from camera import (
+    HEALTH_GRACE_S,
     CameraConfigError,
     CameraSource,
     FrameReader,
     FrameReaderError,
+    Health,
     configure_capture_logging,
 )
 from alerts import send_violation_sms
@@ -73,11 +75,30 @@ from event_queue import EventQueue, QueueReplayer
 
 load_dotenv()
 
+
+def decide_log_level(value):
+    """LOG_LEVEL: how much the log says. Returns (level, problem or None).
+
+    A wrong value falls back to INFO and says so. Unlike HEADLESS, a log setting
+    can't make the program misbehave, so it is no reason to stop watching.
+    """
+    if not value:
+        return logging.INFO, None
+    level = logging.getLevelName(value.strip().upper())
+    if isinstance(level, int):
+        return level, None
+    return logging.INFO, (f"LOG_LEVEL={value} isn't a level (DEBUG, INFO, WARNING, "
+                          f"ERROR); using INFO")
+
+
+LOG_LEVEL, _log_level_problem = decide_log_level(os.getenv("LOG_LEVEL"))
 logging.basicConfig(
-    level=logging.INFO,
+    level=LOG_LEVEL,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 logger = logging.getLogger(__name__)
+if _log_level_problem:
+    logger.warning(_log_level_problem)
 
 # --- Config (reads from .env, falls back to defaults) ---
 # A model file that is missing or can't be loaded is a bad setting: exit 4.
@@ -122,6 +143,10 @@ DEVICE_API_KEY   = os.getenv("DEVICE_API_KEY", "")
 SNAPSHOT_MODE    = os.getenv("SNAPSHOT_MODE", "false").lower() in ("1", "true", "yes")
 
 HEARTBEAT_SECONDS = int(os.getenv("HEARTBEAT_SECONDS", 30))
+
+# Headless only: one STATUS summary line this often, in place of a DETECTED line
+# per violation per frame (G10, decision D3; plan §4.1).
+STATUS_EVERY_S = float(os.getenv("STATUS_EVERY_S", 60))
 
 # ── Outage queue (Phase 3, Step 3.5) ───────────────────────────────────────
 # Paths are relative to detection/, which is where this is run from. Both are
@@ -222,6 +247,95 @@ def install_thread_death_logging() -> None:
     threading.excepthook = log_thread_death
 
 
+class Watching:
+    """Is the device watching? The one answer the heartbeat and the STATUS line give (C6).
+
+    "online" means the model looked at a camera frame within the last
+    HEALTH_GRACE_S. The camera sending frames isn't enough on its own: a loop
+    stuck on something else isn't watching either. Anything else is
+    "degraded", with the reason, so a person knows what to fix (OPEN_ITEMS
+    17.7, layer 1). Before the camera is attached the model is still loading:
+    "starting".
+    """
+
+    def __init__(self, grace_s: float = HEALTH_GRACE_S, clock=time.monotonic):
+        self._grace_s = grace_s
+        self._clock = clock
+        self._since = clock()          # start-up, then the moment the camera was attached
+        self._reader = None
+        self._last_processed = None
+
+    def attach(self, reader) -> None:
+        self._since = self._clock()
+        self._reader = reader
+
+    def processed(self) -> None:
+        """The model got through a frame."""
+        self._last_processed = self._clock()
+
+    def health(self) -> Health:
+        now = self._clock()
+        if self._reader is None:
+            return Health("degraded", "starting", now - self._since)
+        camera = self._reader.health(self._grace_s)
+        if camera.status != "online":
+            return camera
+        looked = now - (self._last_processed if self._last_processed is not None else self._since)
+        if looked > self._grace_s:
+            return Health("degraded", "not_processing", looked)
+        return camera
+
+    def heartbeat_fields(self) -> dict:
+        h = self.health()
+        if h.status == "online":
+            return {"status": "online"}
+        return {"status": h.status, "reason": h.reason, "blind_seconds": int(h.age_s)}
+
+
+class StatusLine:
+    """The unattended log's summary: one line every `every_s`, blind or not (G10, plan §4.1).
+
+    Counts are for the interval since the last line, so a slowdown shows up as
+    a smaller number rather than a slower-growing one.
+    """
+
+    def __init__(self, reader, watching, queue, every_s: float, clock):
+        self._reader = reader
+        self._watching = watching
+        self._queue = queue
+        self._every_s = every_s
+        self._clock = clock
+        self._since = clock()
+        self._due = self._since + every_s
+        self._stats = reader.stats
+        self.processed = 0
+        self.alerts = 0
+
+    def say_if_due(self) -> None:
+        now = self._clock()
+        if now < self._due:
+            return
+        stats = self._reader.stats
+        health = self._watching.health()
+        elapsed = now - self._since
+        parts = [f"camera={health.status}"]
+        if health.reason:
+            parts.append(f"reason={health.reason}")
+        parts += [
+            f"received={stats['received'] - self._stats['received']}",
+            f"processed={self.processed}",
+            f"skipped={stats['skipped'] - self._stats['skipped']}",
+            f"fps={self.processed / elapsed if elapsed > 0 else 0.0:.1f}",
+            f"alerts={self.alerts}",
+            f"blind_s={0 if health.status == 'online' else int(health.age_s)}",
+        ]
+        if self._queue is not None:
+            parts.append(f"queue_pending={self._queue.counts()['pending']}")
+        logger.info("STATUS %s", " ".join(parts))
+        self._since, self._due, self._stats = now, now + self._every_s, stats
+        self.processed = self.alerts = 0
+
+
 def run_detection():
     # Stop signals and thread deaths first, so even start-up can be stopped
     # cleanly and nothing dies unrecorded.
@@ -265,6 +379,9 @@ def run_detection():
     client = None
     queue = None
     replayer = None
+    # What the heartbeat and the STATUS line report: "starting" until the camera
+    # is attached below, then whether the model is actually looking (C6).
+    watching = Watching()
 
     if API_ENABLED:
         client = AllClearClient(
@@ -316,7 +433,7 @@ def run_detection():
                 exc,
             )
 
-        client.start_heartbeat(HEARTBEAT_SECONDS)
+        client.start_heartbeat(HEARTBEAT_SECONDS, health=watching.heartbeat_fields)
         replayer = QueueReplayer(queue, client, tick_seconds=REPLAY_SECONDS)
         replayer.start()
 
@@ -376,6 +493,7 @@ def run_detection():
         read_timeout_s=CAMERA_READ_TIMEOUT_S,
         refused_wait_s=CAMERA_REFUSED_WAIT_S,
     ).start()
+    watching.attach(reader)
 
     # Every thread the program depends on, and how to tell it is still running.
     # If one dies the loop exits 1, so the service manager starts a fresh
@@ -389,7 +507,7 @@ def run_detection():
     try:
         detection_loop(
             reader, detector, tracker, client, queue,
-            stop=stop, headless=headless, watched=watched,
+            stop=stop, headless=headless, watched=watched, watching=watching,
         )
     finally:
         # Runs however the loop ended, a crash included: let go of the camera,
@@ -421,7 +539,8 @@ def run_detection():
     return 0
 
 
-def detection_loop(reader, detector, tracker, client, queue, *, stop, headless, watched):
+def detection_loop(reader, detector, tracker, client, queue, *, stop, headless, watched,
+                   watching=None, status_every_s=STATUS_EVERY_S, clock=time.monotonic):
     """Frames in, violations out, until asked to stop. Returns "stopped" or "finished".
 
     Kept apart from run_detection() so it can be run with a fake camera and a
@@ -431,11 +550,16 @@ def detection_loop(reader, detector, tracker, client, queue, *, stop, headless, 
     Raises SystemExit(1) if a thread it depends on dies, or the model fails on
     MODEL_FAILURES_BEFORE_EXIT frames in a row: a fresh start is the fix for
     both, and exit code 1 asks the service manager for one.
+
+    `watching` is told each time the model gets through a frame (C6). Headless,
+    it also feeds one STATUS line every `status_every_s`.
     """
     fps = 0.0
     frame_count = 0
     fps_start = time.time()
     model_failures = 0     # in a row; reset by the first frame the model gets through
+    status = (StatusLine(reader, watching, queue, status_every_s, clock)
+              if headless and watching is not None else None)
 
     while not stop.is_set():
         for name, alive in watched.items():
@@ -443,6 +567,9 @@ def detection_loop(reader, detector, tracker, client, queue, *, stop, headless, 
                 logger.critical(
                     "The %s thread died; exiting so the service manager restarts it.", name)
                 raise SystemExit(1)
+        # Checked before waiting for a frame, so it keeps coming while the camera is blind.
+        if status is not None:
+            status.say_if_due()
 
         # The newest frame not yet seen, or None if nothing new arrived within
         # the wait. Outages are the reader's business: it reconnects, and logs
@@ -478,6 +605,10 @@ def detection_loop(reader, detector, tracker, client, queue, *, stop, headless, 
                 raise SystemExit(1)
             continue
         model_failures = 0
+        if watching is not None:
+            watching.processed()
+        if status is not None:
+            status.processed += 1
 
         # 3-5. Boxes, frame rate and status bar: only for a window to show.
         # Headless, nobody would see them.
@@ -500,10 +631,16 @@ def detection_loop(reader, detector, tracker, client, queue, *, stop, headless, 
             v_type = v["violation_type"]
             conf   = v["confidence"]
 
-            logger.info(f"DETECTED   type={v_type}  conf={conf:.2f}")
+            # One per violation per frame: about 900 lines a minute for one worker
+            # without a hard hat. Kept on the laptop, where it's the demo; DEBUG
+            # headless, where STATUS says it once a minute instead (D3, G10).
+            logger.log(logging.DEBUG if headless else logging.INFO,
+                       f"DETECTED   type={v_type}  conf={conf:.2f}")
 
             if tracker.should_alert(v_type):
                 logger.info(f"ALERT      type={v_type} — debounce passed, firing pipeline")
+                if status is not None:
+                    status.alerts += 1
 
                 if not API_ENABLED:
                     logger.info(
