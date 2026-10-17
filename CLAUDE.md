@@ -503,6 +503,20 @@ python src/main.py
 
 Quit: click the OpenCV camera window â†’ press `q` or `ESC` (or Ctrl+C in terminal).
 
+**Against an IP camera, with no window** (Labs4 block 1): set `CAMERA_SOURCE`
+(webcam number, `rtsp://` address, or video file), `CAMERA_USERNAME`,
+`CAMERA_PASSWORD` and `HEADLESS=true` in `detection/.env`. Every setting, with
+why, is in `detection/.env.example`, and `tests/test_env_example.py` fails if the
+code reads one the example leaves out. Headless, the log gives one `STATUS` line
+a minute instead of a `DETECTED` line per frame. Ctrl+C finishes the frame in
+hand and exits 0. Exit codes: 0 stopped or finished, 1 crashed, 3 key rejected,
+4 bad setting. The README has the details.
+
+**On this laptop, every block 1 run is local-only** (`DEVICE_API_KEY` blank), or
+it files a permanent production record. PowerShell's `$env:DEVICE_API_KEY=""`
+*deletes* the variable, so `detection/.env` supplies the real key anyway. Comment
+the line out in `.env`, or set it to empty in the process that starts `main.py`.
+
 
 
 ### Dashboard
@@ -539,25 +553,31 @@ Login: enter email â†’ click magic link in inbox â†’ redirected to /da
 
 
 
-```
-
-OpenCV webcam frame
-
-  â†’ PPEDetector.predict()           [YOLO inference, GPU]
-
-  â†’ PPEDetector.find_violations()   [filter: NO-Hardhat, NO-Safety Vest, NO-Mask]
-
-  â†’ ViolationTracker.should_alert() [debounce 5 frames + 60s cooldown]
-
-  â†’ cv2.imencode()                  [encode frame to JPEG bytes]
-
-  â†’ upload_snapshot()               [S3: violations/{camera_id}/{timestamp}.jpg]
-
-  â†’ log_violation()                 [Supabase: insert into violations table]
-
-  â†’ send_violation_sms()            [Twilio: SMS to supervisor]
+*Corrected 2026-10-17 (Labs4 block 1, C7). The old diagram read the webcam
+inline and wrote to S3 and Supabase directly; neither has been true since
+Phase 3 (the API) and C3 (the reader thread).*
 
 ```
+FrameReader thread (camera.py)    [owns the camera; keeps only the newest frame]
+  → reader.next_frame()             [the newest frame the loop hasn't had; never the same one twice]
+  → PPEDetector.predict()           [YOLO inference, GPU]
+  → PPEDetector.find_violations()   [filter: NO-Hardhat, NO-Safety Vest, NO-Mask]
+  → ViolationTracker.should_alert() [debounce 5 frames + 60s cooldown]
+  → queue.enqueue()                 [queue.db on local disk, BEFORE any network call]
+  → client.submit_violation()       [POST /api/v1/violations with the device key]
+  → client.upload_snapshot()        [snapshot mode only; the site must have opted in]
+  → client.confirm_snapshot()       [the server checks the object exists]
+  → send_violation_sms()            [Twilio, only after the server confirms with a 201]
+```
+
+The same flow, kept current, is the docstring at the top of `detection/src/main.py`.
+
+**Why a reader thread** (measured 2026-10-10, C3): over RTSP, OpenCV's FFmpeg
+backend **rejects** `CAP_PROP_BUFFERSIZE` (`cap.set` returns False), and `grab()`
+returns the **next queued** frame, the oldest, not the newest. A loop slower than
+the camera fell 7.9 s behind in 12 s. The old comment saying `grab()` "discards
+anything queued" was wrong. The webcam path never showed it, because Windows'
+camera drivers do honour the buffer setting `[inference]`.
 
 
 

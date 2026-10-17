@@ -9,6 +9,7 @@ Data flow per frame:
     → PPEDetector.find_violations()   [filter for NO-Hardhat etc.]
     → ViolationTracker.should_alert()  [debounce + cooldown]
     → new_idempotency_key()           [minted ONCE, here, per event]
+    → queue.enqueue()                 [local disk first, then the network]
     → client.submit_violation()       [POST /api/v1/violations]
     → client.upload_snapshot()        [PUT direct to S3, snapshot sites only]
     → client.confirm_snapshot()       [server verifies the object exists]
